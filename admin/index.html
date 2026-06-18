@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>432Hz — Admin</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <form class="login-card" id="loginForm">
+    <div class="brand">432<span class="hz">Hz</span></div>
+    <p>Admin portal · sign in to manage your store</p>
+    <div class="login-err" id="loginErr"></div>
+    <input type="password" id="pw" placeholder="Admin password" autocomplete="current-password" required>
+    <button class="btn gold" type="submit" style="width:100%;justify-content:center">Sign in</button>
+    <div class="login-hint">Default password: <strong>changeme432</strong> — set <code>ADMIN_PASSWORD</code> to change.</div>
+  </form>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">432<span class="hz" style="font-size:.6em;vertical-align:super;opacity:.7">Hz</span> <small>Admin</small></div>
+    <a class="nav-item active" data-view="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> Dashboard</a>
+    <a class="nav-item" data-view="products">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8 12 3l9 5-9 5-9-5Z"/><path d="m3 8 0 8 9 5 9-5V8"/></svg> Products</a>
+    <a class="nav-item" data-view="orders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 2h9l4 4v16H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg> Orders</a>
+    <a class="nav-item" data-view="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6c.1-.3.1-.7.1-1Z"/></svg> Settings</a>
+    <div class="spacer"></div>
+    <div class="side-foot">
+      <a href="../index.html" target="_blank">↗ View storefront</a>
+      <a href="#" id="logoutBtn">→ Sign out</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="menu-toggle" id="menuToggle"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <div>
+        <h1 id="viewTitle">Dashboard</h1>
+        <div class="sub" id="viewSub">An overview of your store</div>
+      </div>
+      <div id="topActions"></div>
+    </div>
+    <div id="view"></div>
+  </main>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head"><h2 id="drawerTitle">Edit</h2><button class="close-x" id="drawerClose"><svg width="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-foot" id="drawerFoot"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

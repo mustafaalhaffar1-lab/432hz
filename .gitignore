@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+
+# runtime data (auto-seeded by server.js on first run — keep off git so deploys don't clobber live data)
+data/
+
+# admin-uploaded product images (live on the server, not in git)
+assets/img/uploads/
+
+# logs / OS
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

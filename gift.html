@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gift Finder &amp; Bundle Builder — 432Hz</title>
+<meta name="description" content="Find the perfect ritual gift in three taps, or build your own bundle and save.">
+<meta name="theme-color" content="#1C2620">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="site-header scrolled" id="header">
+  <a href="index.html" class="brand"><svg class="brand-mark" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.2"/><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1" opacity=".55"/><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width=".8" opacity=".3"/></svg>432<span class="hz">Hz</span></a>
+  <nav class="nav">
+    <a href="collection.html">Shop All</a>
+    <a href="gift.html">Gift Finder</a>
+    <a href="journal.html">Journal</a>
+    <a href="about.html">Our Story</a>
+  </nav>
+  <div class="header-actions">
+    <button class="icon-btn" data-open-cart aria-label="Cart"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg><span class="cart-count" id="cartCount" style="display:none">0</span></button>
+    <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<section class="page-hero">
+  <div class="rings-bg" aria-hidden="true"><svg class="ring-svg" width="700" height="700" viewBox="0 0 400 400"><circle cx="200" cy="200" r="80"><animate attributeName="r" values="80;100;80" dur="7s" repeatCount="indefinite"/></circle><circle cx="200" cy="200" r="150"><animate attributeName="r" values="150;170;150" dur="7s" begin="-3s" repeatCount="indefinite"/></circle></svg></div>
+  <div class="wrap">
+    <span class="eyebrow center" data-reveal>Gift Finder</span>
+    <h1 data-reveal style="--d:.1s">The perfect gift, in <span class="it">three taps.</span></h1>
+    <p data-reveal style="--d:.2s">Answer two quick questions and we'll find the ritual they'll actually use.</p>
+  </div>
+</section>
+
+<!-- GIFT FINDER QUIZ -->
+<section class="finder section-pad">
+  <div class="wrap quiz">
+    <div class="quiz-progress"><span class="dot on" id="d1"></span><span class="dot" id="d2"></span><span class="dot" id="d3"></span></div>
+
+    <div class="quiz-step active" id="step1">
+      <h2>What do they <span class="it">need</span> most?</h2>
+      <div class="quiz-options">
+        <button class="quiz-opt" data-mood="calm"><b>Calm &amp; Rest</b><span>Help slowing down, sleeping deeper, switching off.</span></button>
+        <button class="quiz-opt" data-mood="energy"><b>Energy &amp; Focus</b><span>A lift, fresh momentum, a clearer head.</span></button>
+        <button class="quiz-opt" data-mood="love"><b>Love &amp; Self-Care</b><span>Warmth, softness, a little tenderness.</span></button>
+        <button class="quiz-opt" data-mood="spirit"><b>Grounding &amp; Growth</b><span>Reflection, protection, spiritual depth.</span></button>
+      </div>
+    </div>
+
+    <div class="quiz-step" id="step2">
+      <h2>What's your <span class="it">budget?</span></h2>
+      <div class="quiz-options">
+        <button class="quiz-opt" data-budget="low"><b>Under AED 100</b><span>A thoughtful little something.</span></button>
+        <button class="quiz-opt" data-budget="mid"><b>AED 100–300</b><span>A generous, complete gift.</span></button>
+        <button class="quiz-opt" data-budget="high"><b>AED 300+</b><span>The full ritual experience.</span></button>
+      </div>
+      <div class="quiz-back"><button class="link-underline" id="back1" style="color:var(--clay)">← Back</button></div>
+    </div>
+
+    <div class="quiz-result" id="result">
+      <span class="eyebrow center" style="color:var(--clay)">Your match</span>
+      <h2 style="margin-top:.6rem">We'd choose this for them.</h2>
+      <div class="rec-card">
+        <div class="media"><img id="recImg" src="assets/img/protection.jpg" alt=""></div>
+        <div class="body">
+          <h3 id="recName">The Protection Ritual</h3>
+          <div class="price" id="recPrice">Dhs. 349</div>
+          <p id="recWhy" style="color:var(--muted);font-size:.95rem;margin-bottom:1.4rem"></p>
+          <button class="btn" id="recAdd" style="width:100%;justify-content:center"><span>Add gift to cart</span></button>
+        </div>
+      </div>
+      <div class="quiz-back"><button class="link-underline" id="restart" style="color:var(--clay)">↺ Start over</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- BUNDLE BUILDER -->
+<section class="bundle section-pad">
+  <div class="wrap">
+    <span class="eyebrow" data-reveal>Bundle Builder</span>
+    <h2 data-reveal style="--d:.1s">Build your own <span class="it">ritual set.</span></h2>
+    <p style="color:var(--mist);max-width:52ch;margin-top:1rem" data-reveal style="--d:.2s">Choose any three or more pieces and we'll take <strong>15% off</strong> the set automatically.</p>
+
+    <div class="bundle-grid" id="bundleGrid">
+      <button class="bundle-item" data-name="The Protection Ritual" data-price="349"><span class="check">✓</span><div class="media"><img src="assets/img/protection.jpg" alt=""></div><b>Protection Ritual</b><div class="p">Dhs. 349</div></button>
+      <button class="bundle-item" data-name="The Abundance Ritual" data-price="349"><span class="check">✓</span><div class="media"><img src="assets/img/abundance-2.jpg" alt=""></div><b>Abundance Ritual</b><div class="p">Dhs. 349</div></button>
+      <button class="bundle-item" data-name="The Love Ritual" data-price="386"><span class="check">✓</span><div class="media"><img src="assets/img/love-2.jpg" alt=""></div><b>Love Ritual</b><div class="p">Dhs. 386</div></button>
+      <button class="bundle-item" data-name="Oud Incense Box" data-price="80"><span class="check">✓</span><div class="media"><img src="assets/img/oud-incense.jpg" alt=""></div><b>Oud Incense Box</b><div class="p">Dhs. 80</div></button>
+      <button class="bundle-item" data-name="Amethyst Cluster" data-price="145"><span class="check">✓</span><div class="media"><svg width="44%" viewBox="0 0 200 240" fill="none" stroke="var(--gold-soft)" stroke-width="2" opacity=".7"><path d="M100 30 70 100l30 110 30-110Z"/><path d="M70 100h60"/></svg></div><b>Amethyst Cluster</b><div class="p">Dhs. 145</div></button>
+      <button class="bundle-item" data-name="Citrine Abundance Stone" data-price="120"><span class="check">✓</span><div class="media"><svg width="44%" viewBox="0 0 200 240" fill="none" stroke="var(--gold-soft)" stroke-width="2" opacity=".7"><path d="M100 40 65 110l35 95 35-95Z"/></svg></div><b>Citrine Stone</b><div class="p">Dhs. 120</div></button>
+      <button class="bundle-item" data-name="Selenite Cleansing Wand" data-price="65"><span class="check">✓</span><div class="media"><svg width="26%" viewBox="0 0 120 240" fill="none" stroke="var(--gold-soft)" stroke-width="2" opacity=".7"><rect x="40" y="30" width="40" height="180" rx="4"/></svg></div><b>Selenite Wand</b><div class="p">Dhs. 65</div></button>
+      <button class="bundle-item" data-name="Brass Incense Holder" data-price="55"><span class="check">✓</span><div class="media"><svg width="56%" viewBox="0 0 240 200" fill="none" stroke="var(--gold-soft)" stroke-width="2" opacity=".7"><path d="M30 150h180l-12 24H42Z"/></svg></div><b>Brass Holder</b><div class="p">Dhs. 55</div></button>
+    </div>
+
+    <div class="bundle-bar">
+      <div class="summary">
+        <b id="bundleTotal">Dhs. 0</b><span class="save" id="bundleSave"></span>
+        <span class="sub" id="bundleSub">Select 3 or more pieces to unlock 15% off.</span>
+      </div>
+      <button class="btn btn-light" id="bundleAdd" disabled style="opacity:.5;pointer-events:none"><span>Add bundle to cart</span> <span class="arrow">→</span></button>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap-wide">
+    <div class="footer-top">
+      <div class="footer-brand"><a href="index.html" class="brand">432<span class="hz">Hz</span></a><p>Where elegance meets elevated energy. Holistic rituals tuned to the Earth's frequency — crafted in the UAE.</p></div>
+      <div class="footer-col"><h4>Shop</h4><a href="collection.html">Intention Kits</a><a href="collection.html">Luxury Scents</a><a href="collection.html">Healing Crystals</a><a href="gift.html">Gift Finder</a></div>
+      <div class="footer-col"><h4>The Brand</h4><a href="about.html">Our Story</a><a href="journal.html">The Journal</a><a href="index.html#ritual">Ritual Builder</a></div>
+      <div class="footer-col"><h4>Care</h4><a href="policies.html#shipping">Shipping</a><a href="policies.html#returns">Returns</a><a href="policies.html#privacy">Privacy</a><a href="policies.html#terms">Terms</a></div>
+    </div>
+    <div class="footer-bottom"><span>© <span id="year">2026</span> 432 HZ FZE · info@432hz.ae · +971 58 564 3249</span>
+      <div class="socials"><a href="https://instagram.com/432hz.flow" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/></svg></a></div>
+    </div>
+  </div>
+</footer>
+
+<div class="overlay" id="overlay"></div>
+<aside class="cart-drawer" id="cartDrawer" aria-label="Cart">
+  <div class="cart-head"><h3>Your Ritual</h3><button class="icon-btn" data-close-cart aria-label="Close"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <div class="cart-body" id="cartBody"></div>
+  <div class="cart-foot" id="cartFoot" style="display:none"><div class="cart-total"><span>Total</span><span id="cartTotal">Dhs. 0</span></div><button class="btn"><span>Checkout</span> <span class="arrow">→</span></button><p class="cart-note">Free shipping on orders above AED 100 · Secure checkout</p></div>
+</aside>
+
+<nav class="mobile-nav" id="mobileNav">
+  <a href="collection.html">Shop All</a><a href="gift.html">Gift Finder</a><a href="journal.html">Journal</a><a href="about.html">Our Story</a>
+</nav>
+
+<script src="assets/js/main.js"></script>
+<script>
+  /* ---------- Gift Finder quiz ---------- */
+  (() => {
+    const recs = {
+      calm:   { name: 'The Protection Ritual', price: 'Dhs. 349', img: 'assets/img/protection.jpg', why: 'Grounding, cleansing, and calming — made to reset a busy mind at the end of the day.' },
+      energy: { name: 'The Abundance Ritual',  price: 'Dhs. 349', img: 'assets/img/abundance-2.jpg', why: 'Bright, citrus-forward and uplifting — to move stagnant energy into fresh momentum.' },
+      love:   { name: 'The Love Ritual',       price: 'Dhs. 386', img: 'assets/img/love-2.jpg',      why: 'Tender, rose-led and warm — a ceremony of softness and self-compassion.' },
+      spirit: { name: 'The Abundance Ritual',  price: 'Dhs. 349', img: 'assets/img/abundance.webp',  why: 'Resinous and sacred — built for reflection, protection, and inner growth.' },
+      budget: { name: 'Oud Incense Box',       price: 'Dhs. 80',  img: 'assets/img/oud-incense.jpg', why: 'A beautiful, affordable introduction — premium oud chips in a handcrafted box.' },
+    };
+    let mood = null;
+    const step1 = document.getElementById('step1'), step2 = document.getElementById('step2'), result = document.getElementById('result');
+    const d1 = document.getElementById('d1'), d2 = document.getElementById('d2'), d3 = document.getElementById('d3');
+    const show = (el) => { [step1, step2].forEach((s) => s.classList.remove('active')); result.classList.remove('show'); el === result ? result.classList.add('show') : el.classList.add('active'); };
+
+    document.querySelectorAll('#step1 .quiz-opt').forEach((b) => b.addEventListener('click', () => {
+      mood = b.dataset.mood; d2.classList.add('on'); show(step2);
+    }));
+    document.getElementById('back1').addEventListener('click', () => { d2.classList.remove('on'); show(step1); });
+
+    document.querySelectorAll('#step2 .quiz-opt').forEach((b) => b.addEventListener('click', () => {
+      const r = b.dataset.budget === 'low' ? recs.budget : recs[mood];
+      document.getElementById('recImg').src = r.img;
+      document.getElementById('recName').textContent = r.name;
+      document.getElementById('recPrice').textContent = r.price;
+      document.getElementById('recWhy').textContent = r.why;
+      const add = document.getElementById('recAdd');
+      add.dataset.add = r.name; add.dataset.price = r.price;
+      d3.classList.add('on'); show(result);
+    }));
+    document.getElementById('restart').addEventListener('click', () => { mood = null; d2.classList.remove('on'); d3.classList.remove('on'); show(step1); });
+  })();
+
+  /* ---------- Bundle Builder ---------- */
+  (() => {
+    const picked = new Set();
+    const grid = document.getElementById('bundleGrid');
+    const totalEl = document.getElementById('bundleTotal');
+    const saveEl = document.getElementById('bundleSave');
+    const subEl = document.getElementById('bundleSub');
+    const addBtn = document.getElementById('bundleAdd');
+    const update = () => {
+      let sub = 0; const names = [];
+      picked.forEach((el) => { sub += +el.dataset.price; names.push(el.dataset.name); });
+      const eligible = picked.size >= 3;
+      const final = eligible ? sub * 0.85 : sub;
+      totalEl.textContent = 'Dhs. ' + Math.round(final);
+      saveEl.textContent = eligible ? `Save Dhs. ${Math.round(sub * 0.15)}` : '';
+      subEl.textContent = picked.size === 0 ? 'Select 3 or more pieces to unlock 15% off.'
+        : eligible ? `${picked.size} pieces · 15% bundle discount applied`
+        : `${picked.size} selected · add ${3 - picked.size} more for 15% off`;
+      const ok = picked.size >= 1;
+      addBtn.disabled = !ok;
+      addBtn.style.opacity = ok ? '1' : '.5';
+      addBtn.style.pointerEvents = ok ? 'auto' : 'none';
+      addBtn.dataset.add = picked.size >= 2 ? `Custom Ritual Bundle (${picked.size})` : names[0] || '';
+      addBtn.dataset.price = 'Dhs. ' + Math.round(final);
+    };
+    grid.querySelectorAll('.bundle-item').forEach((item) => item.addEventListener('click', () => {
+      item.classList.toggle('picked');
+      item.classList.contains('picked') ? picked.add(item) : picked.delete(item);
+      update();
+    }));
+    update();
+  })();
+</script>
+</body>
+</html>

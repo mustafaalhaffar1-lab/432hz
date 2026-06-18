@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop All Rituals — 432Hz</title>
+<meta name="description" content="Shop the full 432Hz collection — intention kits, luxury scents, healing crystals and accessories tuned to the Earth's frequency.">
+<meta name="theme-color" content="#1C2620">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="site-header scrolled" id="header">
+  <a href="index.html" class="brand"><svg class="brand-mark" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.2"/><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1" opacity=".55"/><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width=".8" opacity=".3"/></svg>432<span class="hz">Hz</span></a>
+  <nav class="nav">
+    <a href="collection.html">Shop All</a>
+    <a href="gift.html">Gift Finder</a>
+    <a href="journal.html">Journal</a>
+    <a href="about.html">Our Story</a>
+  </nav>
+  <div class="header-actions">
+    <button class="icon-btn" aria-label="Search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg></button>
+    <button class="icon-btn" data-open-cart aria-label="Cart"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg><span class="cart-count" id="cartCount" style="display:none">0</span></button>
+    <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<section class="page-hero">
+  <div class="rings-bg" aria-hidden="true"><svg class="ring-svg" width="700" height="700" viewBox="0 0 400 400"><circle cx="200" cy="200" r="70"><animate attributeName="r" values="70;90;70" dur="7s" repeatCount="indefinite"/></circle><circle cx="200" cy="200" r="140"><animate attributeName="r" values="140;160;140" dur="7s" begin="-3s" repeatCount="indefinite"/></circle></svg></div>
+  <div class="wrap">
+    <span class="eyebrow center" data-reveal>The Collection</span>
+    <h1 data-reveal style="--d:.1s">Tools for <span class="it">intentional</span> living.</h1>
+    <p data-reveal style="--d:.2s">Every piece is chosen, never mass-produced — scent, stone, and sound to ground your energy and reconnect with yourself.</p>
+  </div>
+</section>
+
+<section class="products section-pad">
+  <div class="wrap-wide">
+    <div class="shop-toolbar">
+      <div class="filters" id="filters">
+        <button class="filter active" data-cat="all"><span>All</span></button>
+        <button class="filter" data-cat="Intention Kits"><span>Intention Kits</span></button>
+        <button class="filter" data-cat="Luxury Scents"><span>Luxury Scents</span></button>
+        <button class="filter" data-cat="Healing Crystals"><span>Healing Crystals</span></button>
+        <button class="filter" data-cat="Accessories"><span>Accessories</span></button>
+      </div>
+      <div style="display:flex;align-items:center;gap:1.2rem">
+        <span class="shop-count" id="shopCount"></span>
+        <div class="shop-sort">
+          <select id="sort" aria-label="Sort products">
+            <option value="featured">Sort: Featured</option>
+            <option value="low">Price: Low to High</option>
+            <option value="high">Price: High to Low</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="prod-grid" id="grid"><p style="color:var(--muted)">Loading the collection…</p></div>
+  </div>
+</section>
+
+<section class="newsletter section-pad">
+  <div class="rings-bg" aria-hidden="true"><svg class="ring-svg" width="700" height="700" viewBox="0 0 400 400"><circle cx="200" cy="200" r="80"><animate attributeName="r" values="80;100;80" dur="7s" repeatCount="indefinite"/></circle><circle cx="200" cy="200" r="150"><animate attributeName="r" values="150;170;150" dur="7s" begin="-3s" repeatCount="indefinite"/></circle></svg></div>
+  <div class="wrap">
+    <span class="eyebrow center" data-reveal style="color:var(--gold)">Join the movement</span>
+    <h2 data-reveal style="--d:.1s">Become part of the <span class="it">frequency.</span></h2>
+    <p data-reveal style="--d:.2s">Rituals, reflections, and early access — plus 10% off your first order.</p>
+    <form class="nl-form" id="nlForm" data-reveal style="--d:.3s"><input type="email" required placeholder="Your email address" aria-label="Email"><button class="btn btn-light" type="submit"><span>Join</span> <span class="arrow">→</span></button></form>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap-wide">
+    <div class="footer-top">
+      <div class="footer-brand"><a href="index.html" class="brand">432<span class="hz">Hz</span></a><p>Where elegance meets elevated energy. Holistic rituals tuned to the Earth's frequency — crafted in the UAE.</p></div>
+      <div class="footer-col"><h4>Shop</h4><a href="collection.html">Intention Kits</a><a href="collection.html">Luxury Scents</a><a href="collection.html">Healing Crystals</a><a href="collection.html">Accessories</a></div>
+      <div class="footer-col"><h4>The Brand</h4><a href="about.html">Our Story</a><a href="journal.html">The Journal</a><a href="gift.html">Gift Finder</a></div>
+      <div class="footer-col"><h4>Care</h4><a href="policies.html#shipping">Shipping</a><a href="policies.html#returns">Returns</a><a href="policies.html#privacy">Privacy</a><a href="policies.html#terms">Terms</a></div>
+    </div>
+    <div class="footer-bottom"><span>© <span id="year">2026</span> 432 HZ FZE · info@432hz.ae · +971 58 564 3249</span>
+      <div class="socials"><a href="https://instagram.com/432hz.flow" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/></svg></a></div>
+    </div>
+  </div>
+</footer>
+
+<div class="overlay" id="overlay"></div>
+<aside class="cart-drawer" id="cartDrawer" aria-label="Cart">
+  <div class="cart-head"><h3>Your Ritual</h3><button class="icon-btn" data-close-cart aria-label="Close"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <div class="cart-body" id="cartBody"></div>
+  <div class="cart-foot" id="cartFoot" style="display:none"><div class="cart-total"><span>Total</span><span id="cartTotal">Dhs. 0</span></div><button class="btn"><span>Checkout</span> <span class="arrow">→</span></button><p class="cart-note">Free shipping on orders above AED 100 · Secure checkout</p></div>
+</aside>
+
+<nav class="mobile-nav" id="mobileNav">
+  <a href="collection.html">Shop All</a><a href="gift.html">Gift Finder</a><a href="journal.html">Journal</a><a href="about.html">Our Story</a>
+</nav>
+
+<script src="assets/js/main.js"></script>
+<script>
+  // ---------- Dynamic catalog from the API ----------
+  (() => {
+    const grid = document.getElementById('grid');
+    const countEl = document.getElementById('shopCount');
+    const heart = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-7-4.5-9.5-9C1 9 2.5 5 6 5c2 0 3.2 1.2 4 2.5C10.8 6.2 12 5 14 5c3.5 0 5 4 3.5 7-2.5 4.5-9.5 9-9.5 9Z"/></svg>';
+    const phSvg = '<svg width="42%" viewBox="0 0 200 240" fill="none" stroke="var(--clay)" stroke-width="2" opacity=".5"><path d="M100 30 70 100l30 110 30-110Z"/><path d="M70 100h60M100 30v180"/></svg>';
+    let cat = 'all', sort = 'featured', items = [];
+
+    const card = (p) => {
+      const img = p.images && p.images[0];
+      const media = img ? `<img src="${img}" alt="${p.name}" loading="lazy">` : `<div class="ph">${phSvg}</div>`;
+      const badge = p.badge ? `<span class="prod-badge ${/bestseller|bundle/i.test(p.badge) ? 'gold' : ''}">${p.badge}</span>` : '';
+      const compare = p.compareAt ? ` <small style="text-decoration:line-through;color:var(--muted);font-size:.78rem;font-family:var(--sans)">Dhs. ${p.compareAt}</small>` : '';
+      const sold = p.stock <= 0;
+      const cta = sold ? 'Sold out' : `Quick add — Dhs. ${p.price}`;
+      return `<article class="prod-card" data-slug="${p.slug}" data-cat="${p.category}" data-price="${p.price}">
+        <div class="prod-media">${badge}
+          <button class="prod-fav" aria-label="Save">${heart}</button>
+          ${media}
+          <div class="prod-quickadd"><button class="btn btn-light" ${sold ? 'disabled style="opacity:.55"' : ''} data-add="${p.name}" data-price="Dhs. ${p.price}" data-image="${img || ''}"><span>${cta}</span></button></div>
+        </div>
+        <span class="prod-cat">${p.category}</span>
+        <div class="prod-info"><h3>${p.name}</h3><span class="price">Dhs. ${p.price}${compare}</span></div>
+        <div class="prod-rate"><span class="stars">★★★★★</span><span>${p.rating} (${p.reviews})</span></div>
+      </article>`;
+    };
+
+    const draw = () => {
+      let list = items.filter((p) => cat === 'all' || p.category === cat);
+      if (sort === 'low') list = [...list].sort((a, b) => a.price - b.price);
+      if (sort === 'high') list = [...list].sort((a, b) => b.price - a.price);
+      grid.innerHTML = list.length ? list.map(card).join('') : '<p style="color:var(--muted)">Nothing here yet.</p>';
+      countEl.textContent = list.length + (list.length === 1 ? ' piece' : ' pieces');
+    };
+
+    document.querySelectorAll('.filter').forEach((f) => f.addEventListener('click', () => {
+      document.querySelectorAll('.filter').forEach((x) => x.classList.remove('active'));
+      f.classList.add('active'); cat = f.dataset.cat; draw();
+    }));
+    document.getElementById('sort').addEventListener('change', (e) => { sort = e.target.value; draw(); });
+
+    fetch('/api/products?status=active')
+      .then((r) => r.json())
+      .then((data) => { items = Array.isArray(data) ? data : []; draw(); })
+      .catch(() => { grid.innerHTML = '<p style="color:var(--muted)">Could not load the collection. Is the server running?</p>'; });
+  })();
+</script>
+</body>
+</html>
