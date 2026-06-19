@@ -28,7 +28,7 @@ const writeJSON = (name, obj) => fs.writeFileSync(file(name), JSON.stringify(obj
 // ---------- seed catalog (runs once) ----------
 function seed() {
   if (fs.existsSync(file('products.json'))) return;
-  const img = (f) => (f ? ['assets/img/' + f] : []);
+  const img = (f) => Array.isArray(f) ? f.map((x) => 'assets/img/' + x) : (f ? ['assets/img/' + f] : []);
   const P = (name, category, price, compareAt, f, stock, badge, rating, reviews, description) => ({
     id: 'p_' + crypto.randomBytes(5).toString('hex'),
     name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
@@ -37,11 +37,11 @@ function seed() {
     description: description || '', createdAt: Date.now(),
   });
   const products = [
-    P('The Protection Ritual', 'Intention Kits', 349, 420, 'protection.jpg', 12, 'Bestseller', 4.9, 128, 'A ritual set created to ground, cleanse, and protect your energy.'),
-    P('The Abundance Ritual', 'Intention Kits', 349, 420, 'abundance-2.jpg', 8, 'Bestseller', 5.0, 94, 'A ritual set designed to create space for growth and possibility.'),
-    P('The Love Ritual', 'Intention Kits', 386, null, 'love-2.jpg', 5, 'Limited', 4.8, 76, 'A ritual set designed to soften your space and open your heart.'),
+    P('The Protection Ritual', 'Intention Kits', 349, 420, ['protection.jpg', 'protection-2.jpg', 'protection-3.jpg', 'protection-4.jpg', 'protection-5.jpg', 'protection-6.jpg', 'protection-7.jpg'], 12, 'Bestseller', 4.9, 128, 'A ritual set created to ground, cleanse, and protect your energy.'),
+    P('The Abundance Ritual', 'Intention Kits', 349, 420, ['abundance.webp', 'abundance-2.jpg', 'abundance-3.jpg', 'abundance-4.jpg', 'abundance-5.jpg', 'abundance-6.jpg', 'abundance-7.jpg'], 8, 'Bestseller', 5.0, 94, 'A ritual set designed to create space for growth and possibility.'),
+    P('The Love Ritual', 'Intention Kits', 386, null, ['love.webp', 'love-2.jpg', 'love-3.jpg', 'love-4.jpg', 'love-5.jpg', 'love-6.jpg', 'love-7.jpg'], 5, 'Limited', 4.8, 76, 'A ritual set designed to soften your space and open your heart.'),
     P('The Ritual Library', 'Intention Kits', 949, 1158, 'abundance.webp', 20, 'Bundle', 5.0, 37, 'All four signature rituals, together. Save 18%.'),
-    P('Oud Incense Box', 'Luxury Scents', 80, null, 'oud-incense.jpg', 40, 'New', 4.9, 203, 'Handcrafted Oud Incense Box featuring premium oud chips.'),
+    P('Oud Incense Box', 'Luxury Scents', 80, null, ['oud-incense.jpg', 'oud-incense-2.jpg'], 40, 'New', 4.9, 203, 'Handcrafted Oud Incense Box featuring premium oud chips.'),
     P('Sacred Oud Sticks', 'Luxury Scents', 95, null, '', 30, '', 4.9, 87, 'An ancient scent of warmth and depth — sacred oud, hand-rolled.'),
     P('Amethyst Cluster', 'Healing Crystals', 145, null, '', 18, '', 4.9, 61, 'For clarity, calm, and intuition. Natural, one of a kind.'),
     P('Citrine Abundance Stone', 'Healing Crystals', 120, null, '', 24, '', 5.0, 44, 'The crystal of abundance and optimism.'),
