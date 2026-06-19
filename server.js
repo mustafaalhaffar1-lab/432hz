@@ -29,19 +29,26 @@ const writeJSON = (name, obj) => fs.writeFileSync(file(name), JSON.stringify(obj
 function seed() {
   if (fs.existsSync(file('products.json'))) return;
   const img = (f) => Array.isArray(f) ? f.map((x) => 'assets/img/' + x) : (f ? ['assets/img/' + f] : []);
-  const P = (name, category, price, compareAt, f, stock, badge, rating, reviews, description) => ({
+  const P = (name, category, price, compareAt, f, stock, badge, rating, reviews, description, includes) => ({
     id: 'p_' + crypto.randomBytes(5).toString('hex'),
     name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
     category, price, compareAt: compareAt || null, images: img(f), stock,
     badge: badge || '', rating, reviews, status: 'active',
-    description: description || '', createdAt: Date.now(),
+    description: description || '', includes: includes || [], createdAt: Date.now(),
   });
   const products = [
-    P('The Protection Ritual', 'Intention Kits', 349, 420, ['protection.jpg', 'protection-2.jpg', 'protection-3.jpg', 'protection-4.jpg', 'protection-5.jpg', 'protection-6.jpg', 'protection-7.jpg'], 12, 'Bestseller', 4.9, 128, 'A ritual set created to ground, cleanse, and protect your energy.'),
-    P('The Abundance Ritual', 'Intention Kits', 349, 420, ['abundance.webp', 'abundance-2.jpg', 'abundance-3.jpg', 'abundance-4.jpg', 'abundance-5.jpg', 'abundance-6.jpg', 'abundance-7.jpg'], 8, 'Bestseller', 5.0, 94, 'A ritual set designed to create space for growth and possibility.'),
-    P('The Love Ritual', 'Intention Kits', 386, null, ['love.webp', 'love-2.jpg', 'love-3.jpg', 'love-4.jpg', 'love-5.jpg', 'love-6.jpg', 'love-7.jpg'], 5, 'Limited', 4.8, 76, 'A ritual set designed to soften your space and open your heart.'),
+    P('The Protection Ritual', 'Intention Kits', 349, 420, ['protection.jpg', 'protection-2.jpg', 'protection-3.jpg', 'protection-4.jpg', 'protection-5.jpg', 'protection-6.jpg', 'protection-7.jpg'], 12, 'Bestseller', 4.9, 128,
+      "A ritual set created to ground, cleanse, and protect your energy. The Protection Ritual is curated to help you feel centered and safe within your space — each element chosen to clear negativity, strengthen your energy, and create a sense of calm stability. Use it to reset after heavy days, anchor yourself in moments of stress, or simply maintain a protective shield around your environment. More than a ritual, it's your sanctuary — designed to protect what matters most: your calm.",
+      ["Crystals for protection & strength: Black Tourmaline, Tiger's Eye, Selenite", "Sacred sage bundle to sweep away unwanted energy", "Oud incense with a wooden holder — a grounding ritual of smoke and scent", "Crystal-infused roller with Tiger's Eye, blended with vanilla, tonka & amber woods", "Light catcher to transform light into clarity and balance"]),
+    P('The Abundance Ritual', 'Intention Kits', 349, 420, ['abundance.webp', 'abundance-2.jpg', 'abundance-3.jpg', 'abundance-4.jpg', 'abundance-5.jpg', 'abundance-6.jpg', 'abundance-7.jpg'], 8, 'Bestseller', 5.0, 94,
+      "A ritual set designed to create space for growth and possibility. The Abundance Ritual is curated to help you align with prosperity and expansion — each element chosen to clear away stagnant energy, open your surroundings, and invite in opportunities. Use it to set intentions, ground your energy, or simply shift your space into one that feels expansive and full of potential. More than a ritual, it's a way to attune your space — and yourself — to the frequency of abundance.",
+      ["Crystals for prosperity & growth: Citrine, Pyrite, Green Aventurine", "Sacred sage bundle to clear and refresh your environment", "Oud incense with a wooden holder — a grounding scent to carry intentions skyward", "Crystal-infused roller with Citrine, blended with vanilla, tonka & amber woods", "Light catcher to reflect light and flow, a symbol of expansion"]),
+    P('The Love Ritual', 'Intention Kits', 386, null, ['love.webp', 'love-2.jpg', 'love-3.jpg', 'love-4.jpg', 'love-5.jpg', 'love-6.jpg', 'love-7.jpg'], 5, 'Limited', 4.8, 76,
+      "A ritual set designed to soften your space and open your heart. The Love Ritual is a curated collection for renewal, connection, and balance — each element chosen with intention to clear away heaviness, welcome harmony, and invite love in all its forms. Whether you're nurturing self-love, deepening relationships, or creating a more peaceful atmosphere, this set is your companion. More than a ritual, it's an atmosphere — a way to align your surroundings with the frequency of love.",
+      ["Crystals for love & balance: Rose Quartz, Rhodonite, Green Aventurine", "Sacred sage bundle to cleanse and refresh your energy", "Oud incense with a Selenite holder — ancient scent meets purifying stone", "Crystal-infused roller with Amethyst, blended with vanilla, tonka & amber woods", "Light catcher to fill your space with shifting reflections of harmony"]),
     P('The Ritual Library', 'Intention Kits', 949, 1158, 'abundance.webp', 20, 'Bundle', 5.0, 37, 'All four signature rituals, together. Save 18%.'),
-    P('Oud Incense Box', 'Luxury Scents', 80, null, ['oud-incense.jpg', 'oud-incense-2.jpg'], 40, 'New', 4.9, 203, 'Handcrafted Oud Incense Box featuring premium oud chips.'),
+    P('Oud Incense Box', 'Luxury Scents', 80, null, ['oud-incense.jpg', 'oud-incense-2.jpg'], 40, 'New', 4.9, 203,
+      "Elevate your space with our handcrafted Oud Incense Box — featuring premium oud chips sourced from the finest regions. Encased in elegant packaging, it delivers a rich, long-lasting aroma perfect for relaxing, meditating, or gifting. A timeless blend of tradition and sophistication."),
     P('Sacred Oud Sticks', 'Luxury Scents', 95, null, '', 30, '', 4.9, 87, 'An ancient scent of warmth and depth — sacred oud, hand-rolled.'),
     P('Amethyst Cluster', 'Healing Crystals', 145, null, '', 18, '', 4.9, 61, 'For clarity, calm, and intuition. Natural, one of a kind.'),
     P('Citrine Abundance Stone', 'Healing Crystals', 120, null, '', 24, '', 5.0, 44, 'The crystal of abundance and optimism.'),
