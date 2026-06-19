@@ -227,6 +227,37 @@
   $('#nlForm')?.addEventListener('submit', (e) => { e.preventDefault(); e.target.reset(); toast('Welcome to the frequency — check your inbox for 10% off'); });
   addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCart(); });
 
+  /* ---------- 432Hz ambient tone (Web Audio, synthesized live) ---------- */
+  const soundBtn = $('#soundToggle');
+  if (soundBtn && (window.AudioContext || window.webkitAudioContext)) {
+    let actx = null, master = null, nodes = [], playing = false;
+    const stateEl = $('.state', soundBtn);
+    const start = () => {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended' && actx.resume) actx.resume();
+      master = actx.createGain(); master.gain.value = 0; master.connect(actx.destination);
+      // consonant drone tuned to 432Hz: octave (216) · fourth (324) · root (432)
+      [[216, 0.5], [324, 0.32], [432, 0.4]].forEach(([f, g]) => {
+        const osc = actx.createOscillator(); osc.type = 'sine'; osc.frequency.value = f;
+        const gain = actx.createGain(); gain.gain.value = g;
+        osc.connect(gain); gain.connect(master); osc.start(); nodes.push(osc);
+      });
+      // slow "breathing" via LFO on master gain
+      const lfo = actx.createOscillator(); lfo.frequency.value = 0.09;
+      const lfoGain = actx.createGain(); lfoGain.gain.value = 0.03;
+      lfo.connect(lfoGain); lfoGain.connect(master.gain); lfo.start(); nodes.push(lfo);
+      master.gain.setTargetAtTime(0.10, actx.currentTime, 1.6); // gentle fade-in
+      playing = true; soundBtn.classList.add('on'); if (stateEl) stateEl.textContent = 'on';
+    };
+    const stop = () => {
+      if (!actx) return;
+      master.gain.setTargetAtTime(0, actx.currentTime, 0.5);
+      const ctx = actx; setTimeout(() => { try { nodes.forEach((n) => n.stop && n.stop()); ctx.close(); } catch {} }, 900);
+      actx = null; nodes = []; playing = false; soundBtn.classList.remove('on'); if (stateEl) stateEl.textContent = 'off';
+    };
+    soundBtn.addEventListener('click', () => (playing ? stop() : start()));
+  }
+
   /* ---------- Year ---------- */
   const y = $('#year'); if (y) y.textContent = new Date().getFullYear();
 })();
