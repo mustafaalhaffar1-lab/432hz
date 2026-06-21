@@ -412,6 +412,8 @@ section { position: relative; }
 .footer-col a { display:block; padding:.4rem 0; font-size:.92rem; transition: color .3s, padding .3s; }
 .footer-col a:hover { color: var(--gold-soft); padding-left:.4rem; }
 .footer-bottom { display:flex; justify-content:space-between; align-items:center; padding:1.8rem 0; gap:1rem; flex-wrap:wrap; font-size:.8rem; }
+.staff-login { opacity:.5; transition: opacity .3s, color .3s; }
+.staff-login:hover { opacity:1; color: var(--gold-soft); }
 .socials { display:flex; gap:1rem; }
 .socials a { width:38px; height:38px; border-radius:50%; border:1px solid rgba(255,255,255,.15); display:grid; place-items:center; transition:.4s var(--ease); color: var(--bone); }
 .socials a:hover { background: var(--gold); color: var(--pine); border-color: var(--gold); transform: translateY(-3px); }
