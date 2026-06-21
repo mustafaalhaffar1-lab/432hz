@@ -54,6 +54,7 @@
     dashboard: ['Dashboard', 'An overview of your store'],
     products: ['Products', 'Create, edit and organise your catalogue'],
     orders: ['Orders', 'Track and fulfil customer orders'],
+    customers: ['Customers', 'Everyone who has ordered from you'],
     settings: ['Settings', 'Store details and shipping'],
   };
   function route(view) {
@@ -64,7 +65,7 @@
       ? '<button class="btn gold" id="addProduct">+ Add product</button>' : '';
     if (view === 'products') $('#addProduct').addEventListener('click', () => openProductEditor(null));
     $('#sidebar').classList.remove('open');
-    ({ dashboard: renderDashboard, products: renderProducts, orders: renderOrders, settings: renderSettings }[view])();
+    ({ dashboard: renderDashboard, products: renderProducts, orders: renderOrders, customers: renderCustomers, settings: renderSettings }[view])();
   }
   $$('.nav-item').forEach((n) => n.addEventListener('click', () => route(n.dataset.view)));
 
@@ -233,6 +234,57 @@
       await api('PATCH', 'orders/' + id, { status: $('#od-status').value });
       toast('Order updated'); closeDrawer(); route('orders');
     });
+  }
+
+  // ================= CUSTOMERS =================
+  let customerCache = [];
+  function buildCustomers(orders) {
+    const map = new Map();
+    orders.forEach((o) => {
+      const key = (o.customer.email || o.customer.name || 'unknown').toLowerCase();
+      if (!map.has(key)) map.set(key, { name: o.customer.name, email: o.customer.email, phone: o.customer.phone, city: o.customer.city, country: o.customer.country, orders: [], spent: 0, last: 0 });
+      const c = map.get(key);
+      c.orders.push(o);
+      if (o.status !== 'cancelled') c.spent += o.total;
+      c.last = Math.max(c.last, o.createdAt);
+      if (!c.name && o.customer.name) c.name = o.customer.name;
+      if (!c.phone && o.customer.phone) c.phone = o.customer.phone;
+    });
+    return [...map.values()].sort((a, b) => b.last - a.last);
+  }
+  async function renderCustomers() {
+    const v = $('#view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    const orders = await api('GET', 'orders');
+    customerCache = buildCustomers(orders);
+    if (!customerCache.length) { v.innerHTML = '<div class="panel"><div class="empty">No customers yet.<br>They\'ll appear here automatically after their first order.</div></div>'; return; }
+    v.innerHTML = `<div class="panel"><div class="table-wrap"><table class="table">
+      <thead><tr><th>Customer</th><th>Location</th><th>Orders</th><th class="right">Total spent</th><th>Last order</th></tr></thead>
+      <tbody>${customerCache.map((c, i) => `<tr class="row-click" data-cust="${i}">
+        <td><div class="cell-prod"><div class="thumb" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--clay));color:var(--pine);font-family:var(--display);font-weight:600;display:grid;place-items:center">${esc((c.name || '?')[0].toUpperCase())}</div><div><b>${esc(c.name) || '<span class="muted">Guest</span>'}</b><small>${esc(c.email)}</small></div></div></td>
+        <td class="muted">${esc([c.city, c.country].filter(Boolean).join(', ')) || '—'}</td>
+        <td>${c.orders.length}</td>
+        <td class="right">${money(c.spent)}</td>
+        <td class="muted">${since(c.last)}</td></tr>`).join('')}</tbody></table></div></div>`;
+    $$('[data-cust]', v).forEach((r) => r.addEventListener('click', () => openCustomer(+r.dataset.cust)));
+  }
+  function openCustomer(i) {
+    const c = customerCache[i]; if (!c) return;
+    const body = `
+      <div class="od-section od-cust"><h3>Contact</h3>
+        <p><strong>${esc(c.name) || 'Guest'}</strong></p>
+        <p class="muted">${esc(c.email) || '—'}${c.phone ? ' · ' + esc(c.phone) : ''}</p>
+        <p class="muted">${esc([c.city, c.country].filter(Boolean).join(', ')) || ''}</p>
+      </div>
+      <div class="od-section"><h3>Lifetime</h3>
+        <div class="od-totals">
+          <div><span>Orders</span><span>${c.orders.length}</span></div>
+          <div class="grand"><span>Total spent</span><span>${money(c.spent)}</span></div>
+        </div></div>
+      <div class="od-section"><h3>Order history</h3>
+        ${c.orders.map((o) => `<div class="od-line"><span><b>${o.number}</b> <span class="muted">· ${since(o.createdAt)}</span></span><span>${money(o.total)} ${statusBadge(o.status)}</span></div>`).join('')}
+      </div>`;
+    openDrawer(c.name || 'Customer', body, '<button class="btn ghost" id="custClose">Close</button>' + (c.email ? `<a class="btn gold" href="mailto:${esc(c.email)}">Email customer</a>` : ''));
+    const cc = $('#custClose'); if (cc) cc.addEventListener('click', closeDrawer);
   }
 
   // ================= SETTINGS =================
