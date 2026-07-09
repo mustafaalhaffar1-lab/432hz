@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Bookings — 432Hz Healing</title>
+<meta name="theme-color" content="#1C2620">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="stylesheet" href="assets/css/styles.css">
+<style>
+  body{background:var(--bone)}
+  .mb{padding:clamp(7rem,12vh,9rem) var(--pad-x) clamp(4rem,8vw,6rem);max-width:820px;margin:0 auto}
+  .mb h1{font-size:var(--fs-h1);margin-bottom:.5rem}
+  .mb .sub{color:var(--muted);margin-bottom:2.5rem;font-size:var(--fs-lead)}
+  .lookup{display:flex;gap:.6rem;margin-bottom:2.5rem;max-width:480px}
+  .lookup input{flex:1;padding:.9rem 1.1rem;border:1px solid var(--line);border-radius:100px;background:#fff;font:inherit}
+  .lookup input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(199,164,90,.16)}
+  .bk-group h2{font-family:var(--display);font-size:1.5rem;margin:2rem 0 1rem}
+  .bk{display:flex;gap:1.2rem;align-items:center;background:var(--bone-deep);border-radius:16px;padding:1.2rem 1.4rem;margin-bottom:.9rem;flex-wrap:wrap}
+  .bk .date{text-align:center;min-width:56px}
+  .bk .date b{font-family:var(--display);font-size:1.6rem;display:block;line-height:1}
+  .bk .date span{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--clay)}
+  .bk .info{flex:1;min-width:180px}
+  .bk .info b{display:block;font-size:1.1rem}
+  .bk .info span{font-size:.82rem;color:var(--muted)}
+  .bk .acts{display:flex;gap:.5rem;flex-wrap:wrap}
+  .bk .acts a,.bk .acts button{font-size:.78rem;padding:.55em 1em;border-radius:100px;border:1px solid var(--line);background:#fff;transition:.3s}
+  .bk .acts a:hover,.bk .acts button:hover{border-color:var(--gold)}
+  .bk.cancelled{opacity:.6}
+  .tag{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.25em .7em;border-radius:100px;font-weight:600}
+  .tag.can{background:rgba(168,71,59,.14);color:#a8473b}
+  .empty{color:var(--muted);padding:2rem 0}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="site-header scrolled" id="header">
+  <a href="index.html" class="brand"><svg class="brand-mark" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.2"/><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1" opacity=".55"/><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width=".8" opacity=".3"/></svg>432<span class="hz">Hz</span></a>
+  <nav class="nav"><a href="collection.html">Shop</a><a href="healing.html">Healing Sessions</a><a href="my-bookings.html">My Bookings</a><a href="about.html">Our Story</a></nav>
+  <div class="header-actions"><a href="healing.html" class="btn btn-light" style="padding:.7em 1.4em"><span>Book</span></a></div>
+</header>
+
+<main class="mb">
+  <h1 class="display">My bookings</h1>
+  <p class="sub">Enter the email you booked with to view your tickets, add them to your calendar, or cancel.</p>
+  <form class="lookup" id="lookup"><input type="email" id="email" placeholder="you@email.com" required><button class="btn" type="submit"><span>Find</span></button></form>
+  <div id="results"></div>
+</main>
+
+<script>
+(() => {
+  const $=(s,c=document)=>c.querySelector(s);
+  const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const pad=n=>String(n).padStart(2,'0');
+  const fmtTime=t=>{let[h,mi]=t.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return `${h}${mi?':'+pad(mi):''} ${ap}`;};
+  const results=$('#results');
+  const pre=localStorage.getItem('hz_last_email');if(pre)$('#email').value=pre;
+
+  $('#lookup').addEventListener('submit',e=>{e.preventDefault();load($('#email').value.trim());});
+  if(pre)load(pre);
+
+  async function load(email){
+    if(!email)return; results.innerHTML='<p class="empty">Loading…</p>';
+    try{localStorage.setItem('hz_last_email',email);}catch{}
+    const r=await fetch('/api/bookings?email='+encodeURIComponent(email));
+    const list=await r.json();
+    if(!list.length){results.innerHTML='<p class="empty">No bookings found for that email. Ready to <a href="healing.html" style="text-decoration:underline">book a session</a>?</p>';return;}
+    const now=new Date();
+    const up=list.filter(b=>b.status!=='cancelled'&&new Date(`${b.date}T${b.time}`)>=now).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const past=list.filter(b=>b.status==='cancelled'||new Date(`${b.date}T${b.time}`)<now);
+    results.innerHTML=(up.length?`<div class="bk-group"><h2>Upcoming</h2>${up.map(row).join('')}</div>`:'<p class="empty">No upcoming sessions.</p>')+
+      (past.length?`<div class="bk-group"><h2>Past &amp; cancelled</h2>${past.map(row).join('')}</div>`:'');
+    bind();
+  }
+  function row(b){
+    const[y,m,d]=b.date.split('-').map(Number);
+    const upcoming=b.status!=='cancelled'&&new Date(`${b.date}T${b.time}`)>new Date();
+    return `<div class="bk ${b.status==='cancelled'?'cancelled':''}">
+      <div class="date"><b>${d}</b><span>${MON[m-1]}</span></div>
+      <div class="info"><b>${b.sessionTitle} ${b.status==='cancelled'?'<span class="tag can">Cancelled</span>':''}</b><span>${fmtTime(b.time)} · ${b.instructor} · ${b.quantity} ticket${b.quantity>1?'s':''} · ${b.number}</span></div>
+      <div class="acts"><a href="ticket.html?id=${b.id}">View ticket</a>${upcoming?`<button data-cancel="${b.id}">Cancel</button>`:''}</div>
+    </div>`;
+  }
+  function bind(){document.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=async()=>{if(!confirm('Cancel this booking?'))return;await fetch('/api/bookings/'+b.dataset.cancel+'/cancel',{method:'POST'});load($('#email').value.trim());});}
+})();
+</script>
+</body>
+</html>

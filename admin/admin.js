@@ -55,6 +55,9 @@
     products: ['Products', 'Create, edit and organise your catalogue'],
     orders: ['Orders', 'Track and fulfil customer orders'],
     customers: ['Customers', 'Everyone who has ordered from you'],
+    sessions: ['Healing Sessions', 'Create sessions and manage seats & waitlists'],
+    bookings: ['Session Bookings', 'Tickets, check-in, attendance & refunds'],
+    insights: ['Analytics', 'Tickets, revenue, occupancy & attendance'],
     settings: ['Settings', 'Store details and shipping'],
   };
   function route(view) {
@@ -62,10 +65,12 @@
     $('#viewTitle').textContent = TITLES[view][0];
     $('#viewSub').textContent = TITLES[view][1];
     $('#topActions').innerHTML = view === 'products'
-      ? '<button class="btn gold" id="addProduct">+ Add product</button>' : '';
+      ? '<button class="btn gold" id="addProduct">+ Add product</button>'
+      : view === 'sessions' ? '<button class="btn gold" id="addSession">+ New session</button>' : '';
     if (view === 'products') $('#addProduct').addEventListener('click', () => openProductEditor(null));
+    if (view === 'sessions') $('#addSession').addEventListener('click', () => openSessionEditor(null));
     $('#sidebar').classList.remove('open');
-    ({ dashboard: renderDashboard, products: renderProducts, orders: renderOrders, customers: renderCustomers, settings: renderSettings }[view])();
+    ({ dashboard: renderDashboard, products: renderProducts, orders: renderOrders, customers: renderCustomers, sessions: renderSessions, bookings: renderBookings, insights: renderInsights, settings: renderSettings }[view])();
   }
   $$('.nav-item').forEach((n) => n.addEventListener('click', () => route(n.dataset.view)));
 
@@ -285,6 +290,149 @@
       </div>`;
     openDrawer(c.name || 'Customer', body, '<button class="btn ghost" id="custClose">Close</button>' + (c.email ? `<a class="btn gold" href="mailto:${esc(c.email)}">Email customer</a>` : ''));
     const cc = $('#custClose'); if (cc) cc.addEventListener('click', closeDrawer);
+  }
+
+  // ================= HEALING SESSIONS =================
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const fmtD = (d) => { if (!d) return '—'; const [y, m, dd] = d.split('-').map(Number); return `${dd} ${MON[m - 1]} ${y}`; };
+  const fmtT = (t) => { if (!t) return ''; let [h, mi] = t.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}${mi ? ':' + String(mi).padStart(2, '0') : ''} ${ap}`; };
+  const CATS = ['Nervous System Regulation', 'Deep Healing Sessions', 'Guided Meditation', 'Breathwork', 'Emotional Release', 'Stress Recovery', 'Group Healing', 'Sound Healing'];
+  let sessionCache = [];
+
+  async function renderSessions() {
+    const v = $('#view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    sessionCache = await api('GET', 'sessions');
+    v.innerHTML = `<div class="panel"><div class="table-wrap"><table class="table">
+      <thead><tr><th>Session</th><th>When</th><th>Seats</th><th>Status</th><th></th></tr></thead>
+      <tbody>${sessionCache.map(sessionRow).join('')}</tbody></table></div></div>`;
+    $$('[data-edit-s]', v).forEach((b) => b.addEventListener('click', () => openSessionEditor(sessionCache.find((s) => s.id === b.dataset.editS))));
+    $$('[data-dup]', v).forEach((b) => b.addEventListener('click', async () => { await api('POST', 'sessions/' + b.dataset.dup + '/duplicate'); toast('Session duplicated'); renderSessions(); }));
+    $$('[data-pub]', v).forEach((b) => b.addEventListener('click', async () => { const s = sessionCache.find((x) => x.id === b.dataset.pub); await api('PUT', 'sessions/' + s.id, { status: s.status === 'published' ? 'draft' : 'published' }); renderSessions(); }));
+    $$('[data-del-s]', v).forEach((b) => b.addEventListener('click', async () => { if (confirm('Delete this session?')) { await api('DELETE', 'sessions/' + b.dataset.delS); toast('Deleted'); renderSessions(); } }));
+    $$('[data-csv]', v).forEach((b) => b.addEventListener('click', () => csvDownload(b.dataset.csv)));
+  }
+  function sessionRow(s) {
+    const pct = Math.round(s.booked / s.maxSeats * 100);
+    return `<tr>
+      <td><b>${esc(s.title)}</b>${s.featured ? ' <span class="badge b-paid" style="margin-left:.3rem">Featured</span>' : ''}<small class="muted" style="display:block">${esc(s.category)} · ${esc(s.instructor)}</small></td>
+      <td class="muted">${fmtD(s.date)}<br><small>${fmtT(s.time)} · ${esc(s.duration)}</small></td>
+      <td><b>${s.booked}/${s.maxSeats}</b><div style="height:4px;background:var(--bone-deep);border-radius:4px;margin-top:4px;width:80px"><div style="height:100%;width:${pct}%;background:${s.soldOut ? 'var(--bad)' : 'var(--sage)'};border-radius:4px"></div></div></td>
+      <td><span class="badge b-${s.status === 'published' ? 'active' : 'draft'}">${s.status}</span></td>
+      <td class="right" style="white-space:nowrap">
+        <button class="btn ghost sm" data-edit-s="${s.id}">Edit</button>
+        <button class="btn ghost sm" data-pub="${s.id}">${s.status === 'published' ? 'Unpublish' : 'Publish'}</button>
+        <button class="btn ghost sm" data-dup="${s.id}">Duplicate</button>
+        <button class="btn ghost sm" data-csv="${s.id}">CSV</button>
+        <button class="btn danger sm" data-del-s="${s.id}">Delete</button>
+      </td></tr>`;
+  }
+  async function csvDownload(id) {
+    const r = await fetch('/api/sessions/' + id + '/attendees', { credentials: 'same-origin' });
+    const blob = await r.blob(); const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'attendees.csv'; a.click();
+  }
+  function openSessionEditor(s) {
+    const isNew = !s;
+    const body = `
+      <div class="field"><label>Title</label><input id="s-title" value="${esc(s?.title || '')}"></div>
+      <div class="field"><label>Description</label><textarea id="s-desc" rows="2">${esc(s?.description || '')}</textarea></div>
+      <div class="field-row"><div class="field"><label>Category</label><select id="s-cat">${CATS.map((c) => `<option ${s?.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div><div class="field"><label>Instructor</label><input id="s-inst" value="${esc(s?.instructor || '')}"></div></div>
+      <div class="field-row-3"><div class="field"><label>Date</label><input id="s-date" type="date" value="${s?.date || ''}"></div><div class="field"><label>Time</label><input id="s-time" type="time" value="${s?.time || ''}"></div><div class="field"><label>Duration</label><input id="s-dur" value="${esc(s?.duration || '')}" placeholder="60 min"></div></div>
+      <div class="field-row-3"><div class="field"><label>Price (AED)</label><input id="s-price" type="number" value="${s?.price ?? ''}"></div><div class="field"><label>Max seats</label><input id="s-seats" type="number" value="${s?.maxSeats ?? ''}"></div><div class="field"><label>Difficulty</label><input id="s-diff" value="${esc(s?.difficulty || '')}" placeholder="All levels"></div></div>
+      <div class="field"><label>Location</label><input id="s-loc" value="${esc(s?.location || '432Hz Studio, Dubai')}"></div>
+      <div class="field-row"><div class="field"><label>What to bring</label><textarea id="s-bring" rows="2">${esc(s?.whatToBring || '')}</textarea></div><div class="field"><label>What to expect</label><textarea id="s-expect" rows="2">${esc(s?.whatToExpect || '')}</textarea></div></div>
+      <div class="field-row"><div class="field"><label>Status</label><select id="s-status"><option value="published" ${s?.status !== 'draft' ? 'selected' : ''}>Published</option><option value="draft" ${s?.status === 'draft' ? 'selected' : ''}>Draft</option></select></div><div class="field"><label>Featured</label><select id="s-feat"><option value="no" ${!s?.featured ? 'selected' : ''}>No</option><option value="yes" ${s?.featured ? 'selected' : ''}>Yes</option></select></div></div>`;
+    openDrawer(isNew ? 'New session' : 'Edit session', body, '<button class="btn ghost" id="sCancel">Cancel</button><button class="btn gold" id="sSave">' + (isNew ? 'Create' : 'Save') + '</button>');
+    $('#sCancel').addEventListener('click', closeDrawer);
+    $('#sSave').addEventListener('click', async () => {
+      const payload = { title: $('#s-title').value.trim(), description: $('#s-desc').value.trim(), category: $('#s-cat').value, instructor: $('#s-inst').value.trim(), date: $('#s-date').value, time: $('#s-time').value, duration: $('#s-dur').value.trim(), price: +$('#s-price').value || 0, maxSeats: +$('#s-seats').value || 0, difficulty: $('#s-diff').value.trim(), location: $('#s-loc').value.trim(), whatToBring: $('#s-bring').value.trim(), whatToExpect: $('#s-expect').value.trim(), status: $('#s-status').value, featured: $('#s-feat').value === 'yes' };
+      if (!payload.title) return toast('Title required');
+      if (s) await api('PUT', 'sessions/' + s.id, payload); else await api('POST', 'sessions', payload);
+      toast(s ? 'Saved' : 'Session created'); closeDrawer(); renderSessions();
+    });
+  }
+
+  // ================= SESSION BOOKINGS =================
+  let bkCache = [], wlCache = [];
+  async function renderBookings() {
+    const v = $('#view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    bkCache = await api('GET', 'bookings');
+    wlCache = await api('GET', 'waitlist').catch(() => []);
+    const sessOpts = [...new Set(bkCache.map((b) => b.sessionTitle))];
+    const wlHTML = wlCache.length ? `<div class="panel" style="margin-bottom:1.4rem"><div class="panel-head"><h2>Waiting list (${wlCache.length})</h2></div><div class="table-wrap"><table class="table"><tbody>${wlCache.map((w) => { const s = sessionCache.find((x) => x.id === w.sessionId); return `<tr><td><b>${esc(w.name)}</b><small class="muted" style="display:block">${esc(w.email)} · ${esc(w.phone)}</small></td><td class="muted">${esc(s ? s.title : 'Session')}</td><td class="right"><button class="btn ghost sm" data-promote="${w.id}">Move to booking</button> <button class="btn danger sm" data-wldel="${w.id}">Remove</button></td></tr>`; }).join('')}</tbody></table></div></div>` : '';
+    v.innerHTML = wlHTML + `
+      <div style="display:flex;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap">
+        <input id="bkSearch" placeholder="Search name, email, or booking #" style="flex:1;min-width:200px;padding:.7rem 1rem;border:1px solid var(--line);border-radius:100px">
+        <select id="bkSession" style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:100px"><option value="">All sessions</option>${sessOpts.map((t) => `<option>${esc(t)}</option>`).join('')}</select>
+        <select id="bkStatus" style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:100px"><option value="">Any status</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option><option value="checked-in">Checked-in</option></select>
+      </div>
+      <div class="panel"><div class="table-wrap"><table class="table">
+      <thead><tr><th>Booking</th><th>Session</th><th>Customer</th><th>Tickets</th><th>Paid</th><th>Status</th></tr></thead>
+      <tbody id="bkBody"></tbody></table></div></div>`;
+    const draw = () => {
+      const q = $('#bkSearch').value.toLowerCase(), sf = $('#bkSession').value, st = $('#bkStatus').value;
+      const rows = bkCache.filter((b) => {
+        const match = !q || (b.customer.name + b.customer.email + b.number).toLowerCase().includes(q);
+        const sm = !sf || b.sessionTitle === sf;
+        const stm = !st || (st === 'checked-in' ? b.attendance === 'checked-in' : b.status === st);
+        return match && sm && stm;
+      });
+      $('#bkBody').innerHTML = rows.length ? rows.map(bkRow).join('') : '<tr><td colspan="6" class="empty">No bookings.</td></tr>';
+      $$('[data-bk]').forEach((r) => r.addEventListener('click', () => openBookingDetail(r.dataset.bk)));
+    };
+    $('#bkSearch').addEventListener('input', draw); $('#bkSession').addEventListener('change', draw); $('#bkStatus').addEventListener('change', draw);
+    $$('[data-promote]', v).forEach((b) => b.addEventListener('click', async () => { try { const r = await api('POST', 'waitlist/' + b.dataset.promote + '/promote'); toast('Moved in as ' + r.number); renderBookings(); } catch (e) { toast(e.message); } }));
+    $$('[data-wldel]', v).forEach((b) => b.addEventListener('click', async () => { await api('DELETE', 'waitlist/' + b.dataset.wldel); renderBookings(); }));
+    draw();
+  }
+  function bkRow(b) {
+    const st = b.status === 'cancelled' ? 'cancelled' : (b.attendance === 'checked-in' ? 'fulfilled' : 'active');
+    const stTxt = b.status === 'cancelled' ? 'Cancelled' : (b.attendance === 'checked-in' ? 'Checked-in' : 'Confirmed');
+    return `<tr class="row-click" data-bk="${b.id}"><td><b>${b.number}</b><small class="muted" style="display:block">${fmtD(b.date)}</small></td><td>${esc(b.sessionTitle)}</td><td>${esc(b.customer.name)}<small class="muted" style="display:block">${esc(b.customer.email)}</small></td><td>${b.quantity}</td><td>AED ${b.total} <span class="badge b-${b.paymentStatus === 'refunded' ? 'cancelled' : 'paid'}" style="margin-left:.2rem">${b.paymentStatus}</span></td><td><span class="badge b-${st}">${stTxt}</span></td></tr>`;
+  }
+  async function openBookingDetail(id) {
+    const b = bkCache.find((x) => x.id === id); if (!b) return;
+    const body = `
+      <div class="od-section"><h3>${b.number} · ${esc(b.sessionTitle)}</h3><p class="muted">${fmtD(b.date)} at ${fmtT(b.time)} · ${esc(b.instructor)} · ${esc(b.location)}</p></div>
+      <div class="od-section od-cust"><h3>Customer</h3><p><strong>${esc(b.customer.name)}</strong></p><p class="muted">${esc(b.customer.email)} · ${esc(b.customer.phone)}</p><p class="muted">${b.quantity} ticket(s) · Paid AED ${b.total}${b.discount ? ' (−' + b.discount + ' ' + esc(b.discountCode) + ')' : ''}</p></div>
+      <div class="od-section"><h3>Attendance</h3>
+        <select id="bd-att" class="field" style="width:100%;padding:.7rem;border:1px solid var(--line);border-radius:10px;background:#fff">
+          ${['booked', 'checked-in', 'no-show'].map((a) => `<option value="${a}" ${b.attendance === a ? 'selected' : ''}>${a}</option>`).join('')}
+        </select></div>
+      <div class="od-section"><h3>Booking status</h3>
+        <select id="bd-status" class="field" style="width:100%;padding:.7rem;border:1px solid var(--line);border-radius:10px;background:#fff">
+          ${['confirmed', 'cancelled'].map((a) => `<option value="${a}" ${b.status === a ? 'selected' : ''}>${a}</option>`).join('')}
+        </select></div>
+      <div class="od-section"><h3>Payment</h3>
+        <select id="bd-pay" class="field" style="width:100%;padding:.7rem;border:1px solid var(--line);border-radius:10px;background:#fff">
+          ${['paid', 'pending', 'refunded'].map((a) => `<option value="${a}" ${b.paymentStatus === a ? 'selected' : ''}>${a}</option>`).join('')}
+        </select></div>`;
+    openDrawer('Booking ' + b.number, body, `<button class="btn ghost" id="bdCheck">✓ Check in</button><button class="btn gold" id="bdSave">Save</button>`);
+    $('#bdCheck').addEventListener('click', async () => { await api('PATCH', 'bookings/' + id, { attendance: 'checked-in' }); toast('Checked in'); closeDrawer(); renderBookings(); });
+    $('#bdSave').addEventListener('click', async () => { await api('PATCH', 'bookings/' + id, { attendance: $('#bd-att').value, status: $('#bd-status').value, paymentStatus: $('#bd-pay').value }); toast('Updated'); closeDrawer(); renderBookings(); });
+  }
+
+  // ================= HEALING ANALYTICS =================
+  async function renderInsights() {
+    const v = $('#view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    const s = await api('GET', 'booking-stats');
+    const card = (ic, lbl, num) => `<div class="stat-card"><div class="ic">${ic}</div><div class="lbl">${lbl}</div><div class="num">${num}</div></div>`;
+    v.innerHTML = `
+      <div class="stat-grid">
+        ${card('<svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8a2 2 0 0 0 2-2V5h12v1a2 2 0 0 0 4 0M4 8v8a2 2 0 0 0 2 2v1h12v-1a2 2 0 0 0 2-2V8"/></svg>', 'Tickets sold', s.ticketsSold)}
+        ${card('<svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 'Revenue', 'AED ' + s.revenue.toLocaleString())}
+        ${card('<svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18"/></svg>', 'Occupancy (upcoming)', s.occupancy + '%')}
+        ${card('<svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>', 'Attendance rate', s.attendanceRate + '%')}
+      </div>
+      <div class="stat-grid">
+        ${card('<svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 'Upcoming revenue', 'AED ' + s.upcomingRevenue.toLocaleString())}
+        ${card('<svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>', 'Repeat customers', s.repeatCustomers)}
+        ${card('<svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>', 'Upcoming sessions', s.upcomingSessions)}
+        ${card('<svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 6 9 17l-5-5"/></svg>', 'Bookings', s.bookingsCount)}
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Most popular sessions</h2></div><div class="table-wrap"><table class="table"><tbody>
+        ${s.popular.length ? s.popular.map((p, i) => `<tr><td style="width:40px" class="muted">${i + 1}</td><td><b>${esc(p.title)}</b></td><td class="right">${p.tickets} tickets</td></tr>`).join('') : '<tr><td class="empty">No bookings yet.</td></tr>'}
+      </tbody></table></div></div>`;
   }
 
   // ================= SETTINGS =================

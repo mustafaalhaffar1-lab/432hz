@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Ticket — 432Hz Healing</title>
+<meta name="theme-color" content="#1C2620">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="stylesheet" href="assets/css/styles.css">
+<style>
+  body{background:var(--bone-deep)}
+  .tk-wrap{min-height:100vh;display:grid;place-items:center;padding:clamp(1.5rem,5vw,4rem) var(--pad-x)}
+  .ticket{width:min(420px,100%);background:var(--bone);border-radius:24px;overflow:hidden;box-shadow:var(--shadow-card)}
+  .tk-top{background:radial-gradient(120% 120% at 50% 0%,#26342c,var(--pine));color:var(--bone);padding:2rem 2rem 2.4rem;text-align:center;position:relative}
+  .tk-top .brand{font-family:var(--display);font-size:1.4rem;justify-content:center;margin-bottom:1.2rem}
+  .tk-top .cat{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-soft)}
+  .tk-top h1{font-size:1.8rem;margin:.5rem 0 1rem;line-height:1.1}
+  .tk-when{display:flex;justify-content:center;gap:1.5rem;font-size:.85rem;color:var(--mist)}
+  .tk-when b{display:block;color:var(--bone);font-family:var(--display);font-size:1.05rem}
+  .perf{height:28px;position:relative;background:var(--bone)}
+  .perf::before,.perf::after{content:"";position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:var(--bone-deep)}
+  .perf::before{left:-14px}.perf::after{right:-14px}
+  .perf .dash{position:absolute;top:50%;left:20px;right:20px;border-top:2px dashed var(--line)}
+  .tk-body{padding:1.5rem 2rem 2rem}
+  .tk-qr{width:190px;height:190px;margin:0 auto 1.2rem;padding:12px;background:#fff;border-radius:16px;border:1px solid var(--line)}
+  .tk-qr svg{width:100%;height:100%}
+  .tk-num{text-align:center;font-family:var(--display);font-size:1.5rem;letter-spacing:.02em}
+  .tk-num small{display:block;font-family:var(--sans);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:.2rem}
+  .tk-rows{margin:1.4rem 0;border-top:1px solid var(--line)}
+  .tk-row{display:flex;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid var(--line);font-size:.9rem}
+  .tk-row span{color:var(--muted)}
+  .tk-status{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .8rem;border-radius:100px;font-size:.72rem;font-weight:600}
+  .st-confirmed{background:rgba(63,125,86,.14);color:#3f7d56}.st-cancelled{background:rgba(168,71,59,.14);color:#a8473b}.st-checked-in{background:rgba(58,107,140,.14);color:#3a6b8c}
+  .tk-actions{display:grid;gap:.6rem;margin-top:1.4rem}
+  .tk-actions .btn{width:100%;justify-content:center}
+  .cal-btns{display:flex;gap:.6rem}
+  .cal-btns a,.cal-btns button{flex:1;justify-content:center;font-size:.8rem;padding:.7em;border:1px solid var(--line);border-radius:100px;display:inline-flex;gap:.4rem;align-items:center;background:#fff;transition:.3s;text-align:center}
+  .cal-btns a:hover,.cal-btns button:hover{border-color:var(--gold)}
+  .tk-back{text-align:center;margin-top:1.5rem}
+  .loading{text-align:center;color:var(--muted);padding:4rem}
+  @media print{body{background:#fff}.tk-actions,.tk-back{display:none}.ticket{box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="tk-wrap">
+  <div id="tkRoot"><div class="loading">Loading your ticket…</div></div>
+</div>
+<script src="assets/js/qrcode.js"></script>
+<script>
+(() => {
+  const $ = (s,c=document)=>c.querySelector(s);
+  const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const pad=n=>String(n).padStart(2,'0');
+  const fmtDate=d=>{const[y,m,dd]=d.split('-').map(Number);const dt=new Date(y,m-1,dd);return `${DOW[dt.getDay()]}, ${dd} ${MON[m-1]} ${y}`;};
+  const fmtTime=t=>{let[h,mi]=t.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return `${h}${mi?':'+pad(mi):''} ${ap}`;};
+  const durMin=s=>{const m=/(\d+)/.exec(s||'');return m?+m[1]:60;};
+  const root=$('#tkRoot');
+  const id=new URLSearchParams(location.search).get('id');
+  if(!id){root.innerHTML='<div class="loading">No ticket specified.</div>';return;}
+
+  fetch('/api/bookings/'+id).then(r=>r.json()).then(b=>{
+    if(b.error){root.innerHTML='<div class="loading">Ticket not found.</div>';return;}
+    render(b);
+  }).catch(()=>{root.innerHTML='<div class="loading">Could not load ticket.</div>';});
+
+  function icsFor(b){const[y,mo,d]=b.date.split('-').map(Number);const[h,mi]=b.time.split(':').map(Number);const start=`${y}${pad(mo)}${pad(d)}T${pad(h)}${pad(mi)}00`;const e=new Date(y,mo-1,d,h,mi+durMin(b.duration));const end=`${e.getFullYear()}${pad(e.getMonth()+1)}${pad(e.getDate())}T${pad(e.getHours())}${pad(e.getMinutes())}00`;return['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//432Hz//Healing//EN','BEGIN:VEVENT',`UID:${b.id}@432hz.ae`,`DTSTART:${start}`,`DTEND:${end}`,`SUMMARY:${b.sessionTitle}`,`LOCATION:${b.location}`,`DESCRIPTION:432Hz Healing — ${b.number}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');}
+  function gcal(b){const[y,mo,d]=b.date.split('-').map(Number);const[h,mi]=b.time.split(':').map(Number);const start=`${y}${pad(mo)}${pad(d)}T${pad(h)}${pad(mi)}00`;const e=new Date(y,mo-1,d,h,mi+durMin(b.duration));const end=`${e.getFullYear()}${pad(e.getMonth()+1)}${pad(e.getDate())}T${pad(e.getHours())}${pad(e.getMinutes())}00`;return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(b.sessionTitle)}&dates=${start}/${end}&location=${encodeURIComponent(b.location)}`;}
+
+  function render(b){
+    let qr='';try{qr=QR.svg(`${location.origin}/ticket.html?id=${b.id}`,{scale:5,margin:2});}catch(e){qr='<div style="padding:2rem">'+b.number+'</div>';}
+    const upcoming=new Date(`${b.date}T${b.time}`)>new Date();
+    const stClass=b.status==='cancelled'?'st-cancelled':(b.attendance==='checked-in'?'st-checked-in':'st-confirmed');
+    const stText=b.status==='cancelled'?'Cancelled':(b.attendance==='checked-in'?'Checked in':'Confirmed');
+    root.innerHTML=`<div class="ticket">
+      <div class="tk-top">
+        <div class="brand">432<span class="hz" style="font-size:.6em;vertical-align:super;opacity:.7">Hz</span> Healing</div>
+        <div class="cat">${b.category}</div>
+        <h1>${b.sessionTitle}</h1>
+        <div class="tk-when"><div><b>${fmtDate(b.date).split(',')[0]}</b>${fmtDate(b.date).split(',').slice(1).join(',')}</div><div><b>${fmtTime(b.time)}</b>${b.duration}</div></div>
+      </div>
+      <div class="perf"><div class="dash"></div></div>
+      <div class="tk-body">
+        <div class="tk-qr">${qr}</div>
+        <div class="tk-num"><small>Booking number</small>${b.number}</div>
+        <div class="tk-rows">
+          <div class="tk-row"><span>Attendee</span><b>${b.customer.name}</b></div>
+          <div class="tk-row"><span>Tickets</span><b>${b.quantity}</b></div>
+          <div class="tk-row"><span>Instructor</span><b>${b.instructor}</b></div>
+          <div class="tk-row"><span>Location</span><b>${b.location}</b></div>
+          <div class="tk-row"><span>Paid</span><b>AED ${b.total}</b></div>
+          <div class="tk-row"><span>Status</span><span class="tk-status ${stClass}">${stText}</span></div>
+        </div>
+        ${b.status==='cancelled'?'':`<div class="tk-actions">
+          <div class="cal-btns"><a href="${gcal(b)}" target="_blank" rel="noopener">＋ Google</a><button id="ics">＋ Apple/Outlook</button></div>
+          <button class="btn" onclick="window.print()"><span>Download / Print</span></button>
+          ${upcoming?'<button class="btn btn-ghost" id="cancelBtn"><span>Cancel booking</span></button>':''}
+        </div>`}
+        <div class="tk-back"><a class="link-underline" href="my-bookings.html">← My bookings</a></div>
+      </div>
+    </div>`;
+    const ics=$('#ics');if(ics)ics.onclick=()=>{const bl=new Blob([icsFor(b)],{type:'text/calendar'});const a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=b.number+'.ics';a.click();};
+    const cb=$('#cancelBtn');if(cb)cb.onclick=async()=>{if(!confirm('Cancel this booking? Free up to 24h before.'))return;await fetch('/api/bookings/'+b.id+'/cancel',{method:'POST'});location.reload();};
+  }
+})();
+</script>
+</body>
+</html>

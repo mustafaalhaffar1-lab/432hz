@@ -64,6 +64,37 @@ function seed() {
     storeName: '432Hz', email: 'info@432hz.ae', phone: '+971 58 564 3249',
     currency: 'AED', freeShipThreshold: 100, flatShipping: 25,
   });
+
+  // ---- healing sessions seed ----
+  const pad = (n) => String(n).padStart(2, '0');
+  const dstr = (offsetDays) => { const d = new Date(Date.now() + offsetDays * 86400000); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const S = (title, category, price, maxSeats, offset, time, duration, instructor, location, difficulty, desc, bring, expect, featured) => ({
+    id: 's_' + crypto.randomBytes(5).toString('hex'),
+    title, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+    category, price, maxSeats, date: dstr(offset), time, duration, instructor, location,
+    difficulty: difficulty || '', description: desc, whatToBring: bring, whatToExpect: expect,
+    coverImage: '', status: 'published', featured: !!featured,
+    cancelPolicy: 'Free cancellation up to 24 hours before the session.', createdAt: Date.now(),
+  });
+  writeJSON('sessions.json', [
+    S('Nervous System Reset', 'Nervous System Regulation', 180, 12, 3, '18:30', '75 min', 'Layla Haddad', '432Hz Studio, Dubai', 'All levels', 'A deeply grounding session to calm an overstimulated nervous system through breath, sound, and gentle somatic work.', 'Comfortable clothing, a water bottle, and an open mind.', 'Guided breathwork, a 432Hz sound immersion, and somatic release. You will leave feeling settled and clear.', true),
+    S('Deep Healing Sound Bath', 'Sound Healing', 150, 16, 5, '19:00', '60 min', 'Omar Nasser', '432Hz Studio, Dubai', 'All levels', 'Lie back and be washed over by the harmonics of crystal bowls tuned to 432Hz.', 'A yoga mat or blanket, and an eye pillow if you have one.', 'A full-body sound bath that slows the mind into deep rest.', true),
+    S('Breathwork Journey', 'Breathwork', 140, 14, 7, '18:00', '90 min', 'Layla Haddad', '432Hz Studio, Dubai', 'Intermediate', 'An active breathwork journey to move stuck emotion and energy.', 'Loose clothing, water, and tissues.', 'Conscious connected breathing set to music, followed by quiet integration.', false),
+    S('Guided Meditation: Stillness', 'Guided Meditation', 90, 20, 2, '07:30', '45 min', 'Sara Idris', '432Hz Studio, Dubai', 'Beginner', 'A gentle morning meditation to begin the day grounded and clear.', 'Nothing but yourself.', 'A guided practice in presence and breath awareness.', false),
+    S('Emotional Release Circle', 'Emotional Release', 160, 10, 9, '18:30', '90 min', 'Sara Idris', '432Hz Studio, Dubai', 'All levels', 'A held space to feel, express, and release what you have been carrying.', 'Comfortable clothing and a journal.', 'Somatic movement, sound, and gentle sharing within a safe circle.', false),
+    S('Stress Recovery Restorative', 'Stress Recovery', 130, 16, 12, '19:30', '60 min', 'Omar Nasser', '432Hz Studio, Dubai', 'Beginner', 'Restorative postures and breath to switch off the stress response.', 'A blanket and comfortable layers.', 'Supported rest, long exhales, and deep relaxation.', false),
+    S('Group Healing Ceremony', 'Group Healing', 120, 24, 14, '18:00', '120 min', 'Layla Haddad', '432Hz Studio, Dubai', 'All levels', 'A collective healing ceremony with sound, intention, and community.', 'Water and comfortable clothing.', 'Shared ritual, sound healing, and genuine connection.', true),
+    S('Sunset Sound Meditation', 'Sound Healing', 110, 18, 6, '17:30', '50 min', 'Omar Nasser', '432Hz Studio, Dubai', 'All levels', 'Wind down with a sunset sound meditation as the day softens.', 'A mat or cushion.', 'Gentle sound and guided rest.', false),
+  ]);
+  writeJSON('bookings.json', []);
+  writeJSON('waitlist.json', []);
+  writeJSON('session_reviews.json', []);
+  writeJSON('discounts.json', [
+    { code: 'CALM10', type: 'percent', value: 10, active: true, note: '10% off any session' },
+    { code: 'EARLYBIRD', type: 'percent', value: 15, active: true, note: 'Early-bird 15% off' },
+  ]);
+  writeJSON('booking_meta.json', { seq: 1001 });
+
   console.log('Seeded data/');
 }
 seed();
@@ -257,6 +288,219 @@ async function api(req, res, url) {
       products: products.length,
       lowStock: products.filter((p) => p.stock <= 5).length,
       recent: orders.slice(0, 6),
+    });
+  }
+
+  // =====================================================================
+  // HEALING SESSIONS · BOOKINGS · WAITLIST · REVIEWS · ANALYTICS
+  // =====================================================================
+  const action = seg[3];
+  const seatsBooked = (sid, bookings) => bookings.filter((b) => b.sessionId === sid && b.status === 'confirmed').reduce((n, b) => n + b.quantity, 0);
+  const withSeats = (s, bookings) => { const booked = seatsBooked(s.id, bookings); return { ...s, booked, remaining: Math.max(0, s.maxSeats - booked), soldOut: booked >= s.maxSeats }; };
+
+  // ---- sessions ----
+  if (resource === 'sessions') {
+    const all = readJSON('sessions.json', []);
+    const bookings = readJSON('bookings.json', []);
+    if (method === 'GET' && !id) {
+      const admin = isAuthed(req);
+      let list = admin ? all : all.filter((s) => s.status === 'published');
+      list = list.map((s) => withSeats(s, bookings)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+      return sendJSON(res, 200, list);
+    }
+    if (method === 'GET' && id && action === 'attendees') { // CSV export (admin)
+      if (!requireAuth()) return;
+      const s = all.find((x) => x.id === id);
+      const rows = [['Booking', 'Name', 'Email', 'Phone', 'Tickets', 'Payment', 'Attendance', 'Booked at']];
+      bookings.filter((b) => b.sessionId === id && b.status === 'confirmed').forEach((b) => rows.push([b.number, b.customer.name, b.customer.email, b.customer.phone, b.quantity, b.paymentStatus, b.attendance, new Date(b.createdAt).toISOString()]));
+      const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+      return res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="attendees-${(s && s.slug) || id}.csv"` }), res.end(csv);
+    }
+    if (method === 'GET' && id) {
+      const s = all.find((x) => x.id === id || x.slug === id);
+      return s ? sendJSON(res, 200, withSeats(s, bookings)) : sendJSON(res, 404, { error: 'not found' });
+    }
+    if (method === 'POST' && id && action === 'duplicate') {
+      if (!requireAuth()) return;
+      const src = all.find((x) => x.id === id); if (!src) return sendJSON(res, 404, { error: 'not found' });
+      const copy = { ...src, id: 's_' + crypto.randomBytes(5).toString('hex'), title: src.title + ' (copy)', status: 'draft', featured: false, createdAt: Date.now() };
+      all.unshift(copy); writeJSON('sessions.json', all); return sendJSON(res, 201, copy);
+    }
+    if (method === 'POST') {
+      if (!requireAuth()) return;
+      const b = await readBody(req);
+      const s = {
+        id: 's_' + crypto.randomBytes(5).toString('hex'),
+        title: b.title || 'Untitled session', slug: (b.title || 'session').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+        category: b.category || 'Guided Meditation', price: +b.price || 0, maxSeats: +b.maxSeats || 10,
+        date: b.date || '', time: b.time || '', duration: b.duration || '', instructor: b.instructor || '',
+        location: b.location || '432Hz Studio, Dubai', difficulty: b.difficulty || '',
+        description: b.description || '', whatToBring: b.whatToBring || '', whatToExpect: b.whatToExpect || '',
+        coverImage: b.coverImage || '', status: b.status || 'draft', featured: !!b.featured,
+        cancelPolicy: b.cancelPolicy || 'Free cancellation up to 24 hours before the session.', createdAt: Date.now(),
+      };
+      all.unshift(s); writeJSON('sessions.json', all); return sendJSON(res, 201, s);
+    }
+    if (method === 'PUT' && id) {
+      if (!requireAuth()) return;
+      const b = await readBody(req); const i = all.findIndex((x) => x.id === id);
+      if (i < 0) return sendJSON(res, 404, { error: 'not found' });
+      ['title', 'category', 'price', 'maxSeats', 'date', 'time', 'duration', 'instructor', 'location', 'difficulty', 'description', 'whatToBring', 'whatToExpect', 'coverImage', 'status', 'featured', 'cancelPolicy'].forEach((f) => { if (b[f] !== undefined) all[i][f] = f === 'price' || f === 'maxSeats' ? +b[f] : b[f]; });
+      if (b.title) all[i].slug = b.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      writeJSON('sessions.json', all); return sendJSON(res, 200, all[i]);
+    }
+    if (method === 'DELETE' && id) {
+      if (!requireAuth()) return;
+      writeJSON('sessions.json', all.filter((x) => x.id !== id)); return sendJSON(res, 200, { ok: true });
+    }
+  }
+
+  // ---- bookings ----
+  if (resource === 'bookings') {
+    const bookings = readJSON('bookings.json', []);
+    if (method === 'GET' && id) { // ticket lookup (public — id acts as token)
+      const b = bookings.find((x) => x.id === id || x.number === id);
+      return b ? sendJSON(res, 200, b) : sendJSON(res, 404, { error: 'not found' });
+    }
+    if (method === 'GET' && !id) {
+      if (url.searchParams.get('email')) { // customer portal
+        const em = url.searchParams.get('email').toLowerCase();
+        return sendJSON(res, 200, bookings.filter((b) => (b.customer.email || '').toLowerCase() === em));
+      }
+      if (!requireAuth()) return; // admin list
+      const sid = url.searchParams.get('session');
+      return sendJSON(res, 200, sid ? bookings.filter((b) => b.sessionId === sid) : bookings);
+    }
+    if (method === 'POST' && !id) { // create booking (public checkout)
+      const b = await readBody(req);
+      const all = readJSON('sessions.json', []);
+      const s = all.find((x) => x.id === b.sessionId);
+      if (!s || s.status !== 'published') return sendJSON(res, 400, { error: 'Session unavailable' });
+      const qty = Math.max(1, parseInt(b.quantity) || 1);
+      const booked = seatsBooked(s.id, bookings);
+      const remaining = s.maxSeats - booked;
+      if (remaining < qty) return sendJSON(res, 409, { error: 'Not enough seats', remaining });
+      const subtotal = s.price * qty;
+      let discount = 0, code = '';
+      if (b.discountCode) {
+        const d = readJSON('discounts.json', []).find((x) => x.active && x.code.toLowerCase() === String(b.discountCode).toLowerCase());
+        if (d) { discount = d.type === 'percent' ? Math.round(subtotal * d.value / 100) : Math.min(subtotal, d.value); code = d.code; }
+      }
+      const meta = readJSON('booking_meta.json', { seq: 1001 });
+      const booking = {
+        id: 'bk_' + crypto.randomBytes(7).toString('hex'), number: 'HS-' + meta.seq,
+        sessionId: s.id, sessionTitle: s.title, category: s.category, date: s.date, time: s.time,
+        duration: s.duration, location: s.location, instructor: s.instructor,
+        customer: { name: b.customer?.name || '', email: b.customer?.email || '', phone: b.customer?.phone || '' },
+        attendees: Array.isArray(b.attendees) ? b.attendees : [], quantity: qty,
+        subtotal, discountCode: code, discount, total: subtotal - discount,
+        paymentStatus: 'paid', status: 'confirmed', attendance: 'booked', createdAt: Date.now(),
+      };
+      meta.seq += 1; writeJSON('booking_meta.json', meta);
+      bookings.unshift(booking); writeJSON('bookings.json', bookings);
+      return sendJSON(res, 201, { ok: true, id: booking.id, number: booking.number, booking });
+    }
+    if (method === 'POST' && id && action === 'cancel') { // public self-cancel
+      const i = bookings.findIndex((x) => x.id === id || x.number === id);
+      if (i < 0) return sendJSON(res, 404, { error: 'not found' });
+      bookings[i].status = 'cancelled'; bookings[i].paymentStatus = 'refunded';
+      writeJSON('bookings.json', bookings); return sendJSON(res, 200, { ok: true });
+    }
+    if (method === 'PATCH' && id) { // admin update
+      if (!requireAuth()) return;
+      const b = await readBody(req); const i = bookings.findIndex((x) => x.id === id);
+      if (i < 0) return sendJSON(res, 404, { error: 'not found' });
+      ['status', 'paymentStatus', 'attendance'].forEach((f) => { if (b[f] !== undefined) bookings[i][f] = b[f]; });
+      writeJSON('bookings.json', bookings); return sendJSON(res, 200, bookings[i]);
+    }
+  }
+
+  // ---- waitlist ----
+  if (resource === 'waitlist') {
+    const wl = readJSON('waitlist.json', []);
+    if (method === 'POST' && !id) {
+      const b = await readBody(req);
+      const entry = { id: 'wl_' + crypto.randomBytes(5).toString('hex'), sessionId: b.sessionId, name: b.name || '', email: b.email || '', phone: b.phone || '', quantity: Math.max(1, parseInt(b.quantity) || 1), createdAt: Date.now() };
+      wl.push(entry); writeJSON('waitlist.json', wl); return sendJSON(res, 201, { ok: true });
+    }
+    if (method === 'GET') { if (!requireAuth()) return; return sendJSON(res, 200, wl); }
+    if (method === 'DELETE' && id) { if (!requireAuth()) return; writeJSON('waitlist.json', wl.filter((x) => x.id !== id)); return sendJSON(res, 200, { ok: true }); }
+    if (method === 'POST' && id && action === 'promote') { // move to a booking
+      if (!requireAuth()) return;
+      const entry = wl.find((x) => x.id === id); if (!entry) return sendJSON(res, 404, { error: 'not found' });
+      const all = readJSON('sessions.json', []); const bookings = readJSON('bookings.json', []);
+      const s = all.find((x) => x.id === entry.sessionId); if (!s) return sendJSON(res, 400, { error: 'session gone' });
+      if (s.maxSeats - seatsBooked(s.id, bookings) < entry.quantity) return sendJSON(res, 409, { error: 'still full' });
+      const meta = readJSON('booking_meta.json', { seq: 1001 });
+      const booking = { id: 'bk_' + crypto.randomBytes(7).toString('hex'), number: 'HS-' + meta.seq, sessionId: s.id, sessionTitle: s.title, category: s.category, date: s.date, time: s.time, duration: s.duration, location: s.location, instructor: s.instructor, customer: { name: entry.name, email: entry.email, phone: entry.phone }, attendees: [], quantity: entry.quantity, subtotal: s.price * entry.quantity, discountCode: '', discount: 0, total: s.price * entry.quantity, paymentStatus: 'pending', status: 'confirmed', attendance: 'booked', createdAt: Date.now() };
+      meta.seq += 1; writeJSON('booking_meta.json', meta);
+      bookings.unshift(booking); writeJSON('bookings.json', bookings);
+      writeJSON('waitlist.json', wl.filter((x) => x.id !== id));
+      return sendJSON(res, 201, { ok: true, number: booking.number });
+    }
+  }
+
+  // ---- session reviews ----
+  if (resource === 'session-reviews') {
+    const reviews = readJSON('session_reviews.json', []);
+    if (method === 'GET') {
+      const approvedOnly = !isAuthed(req);
+      let list = approvedOnly ? reviews.filter((r) => r.approved) : reviews;
+      const sid = url.searchParams.get('session'); if (sid) list = list.filter((r) => r.sessionId === sid);
+      return sendJSON(res, 200, list);
+    }
+    if (method === 'POST' && !id) {
+      const b = await readBody(req);
+      reviews.unshift({ id: 'rv_' + crypto.randomBytes(5).toString('hex'), sessionId: b.sessionId || '', name: b.name || 'Anonymous', rating: Math.min(5, Math.max(1, +b.rating || 5)), text: b.text || '', approved: false, createdAt: Date.now() });
+      writeJSON('session_reviews.json', reviews); return sendJSON(res, 201, { ok: true });
+    }
+    if (method === 'PATCH' && id) { if (!requireAuth()) return; const i = reviews.findIndex((r) => r.id === id); if (i < 0) return sendJSON(res, 404, {}); reviews[i].approved = !!(await readBody(req)).approved; writeJSON('session_reviews.json', reviews); return sendJSON(res, 200, reviews[i]); }
+    if (method === 'DELETE' && id) { if (!requireAuth()) return; writeJSON('session_reviews.json', reviews.filter((r) => r.id !== id)); return sendJSON(res, 200, { ok: true }); }
+  }
+
+  // ---- discounts ----
+  if (resource === 'discounts') {
+    const discounts = readJSON('discounts.json', []);
+    if (method === 'POST' && id === 'validate') { // public preview
+      const b = await readBody(req);
+      const d = discounts.find((x) => x.active && x.code.toLowerCase() === String(b.code || '').toLowerCase());
+      if (!d) return sendJSON(res, 404, { error: 'Invalid code' });
+      const sub = +b.subtotal || 0;
+      return sendJSON(res, 200, { code: d.code, discount: d.type === 'percent' ? Math.round(sub * d.value / 100) : Math.min(sub, d.value), note: d.note });
+    }
+    if (method === 'GET') { if (!requireAuth()) return; return sendJSON(res, 200, discounts); }
+    if (method === 'POST') { if (!requireAuth()) return; const b = await readBody(req); discounts.push({ code: (b.code || '').toUpperCase(), type: b.type || 'percent', value: +b.value || 0, active: b.active !== false, note: b.note || '' }); writeJSON('discounts.json', discounts); return sendJSON(res, 201, { ok: true }); }
+    if (method === 'DELETE' && id) { if (!requireAuth()) return; writeJSON('discounts.json', discounts.filter((d) => d.code !== id)); return sendJSON(res, 200, { ok: true }); }
+  }
+
+  // ---- booking analytics ----
+  if (resource === 'booking-stats' && method === 'GET') {
+    if (!requireAuth()) return;
+    const bookings = readJSON('bookings.json', []);
+    const all = readJSON('sessions.json', []);
+    const confirmed = bookings.filter((b) => b.status === 'confirmed');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const ticketsSold = confirmed.reduce((n, b) => n + b.quantity, 0);
+    const revenue = confirmed.filter((b) => b.paymentStatus === 'paid').reduce((s, b) => s + b.total, 0);
+    const upcoming = all.filter((s) => s.status === 'published' && s.date >= todayStr);
+    const capacity = upcoming.reduce((n, s) => n + s.maxSeats, 0);
+    const filled = upcoming.reduce((n, s) => n + seatsBooked(s.id, confirmed), 0);
+    const past = confirmed.filter((b) => b.date < todayStr);
+    const attended = past.filter((b) => b.attendance === 'checked-in').reduce((n, b) => n + b.quantity, 0);
+    const pastTickets = past.reduce((n, b) => n + b.quantity, 0);
+    const bySession = {};
+    confirmed.forEach((b) => { bySession[b.sessionTitle] = (bySession[b.sessionTitle] || 0) + b.quantity; });
+    const popular = Object.entries(bySession).map(([title, tickets]) => ({ title, tickets })).sort((a, b) => b.tickets - a.tickets).slice(0, 5);
+    const emails = confirmed.map((b) => (b.customer.email || '').toLowerCase()).filter(Boolean);
+    const repeat = emails.length - new Set(emails).size;
+    return sendJSON(res, 200, {
+      ticketsSold, revenue,
+      occupancy: capacity ? Math.round(filled / capacity * 100) : 0,
+      upcomingRevenue: confirmed.filter((b) => b.date >= todayStr && b.paymentStatus === 'paid').reduce((s, b) => s + b.total, 0),
+      attendanceRate: pastTickets ? Math.round(attended / pastTickets * 100) : 0,
+      repeatCustomers: repeat, bookingsCount: confirmed.length,
+      today: confirmed.filter((b) => b.date === todayStr).length,
+      popular, upcomingSessions: upcoming.length,
     });
   }
 
