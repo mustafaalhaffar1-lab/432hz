@@ -68,24 +68,28 @@ function seed() {
   // ---- healing sessions seed ----
   const pad = (n) => String(n).padStart(2, '0');
   const dstr = (offsetDays) => { const d = new Date(Date.now() + offsetDays * 86400000); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-  const S = (title, category, price, maxSeats, offset, time, duration, instructor, location, difficulty, desc, bring, expect, featured) => ({
+  writeJSON('sessions.json', [{
     id: 's_' + crypto.randomBytes(5).toString('hex'),
-    title, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-    category, price, maxSeats, date: dstr(offset), time, duration, instructor, location,
-    difficulty: difficulty || '', description: desc, whatToBring: bring, whatToExpect: expect,
-    coverImage: '', status: 'published', featured: !!featured,
-    cancelPolicy: 'Free cancellation up to 24 hours before the session.', createdAt: Date.now(),
-  });
-  writeJSON('sessions.json', [
-    S('Nervous System Reset', 'Nervous System Regulation', 180, 12, 3, '18:30', '75 min', 'Layla Haddad', '432Hz Studio, Dubai', 'All levels', 'A deeply grounding session to calm an overstimulated nervous system through breath, sound, and gentle somatic work.', 'Comfortable clothing, a water bottle, and an open mind.', 'Guided breathwork, a 432Hz sound immersion, and somatic release. You will leave feeling settled and clear.', true),
-    S('Deep Healing Sound Bath', 'Sound Healing', 150, 16, 5, '19:00', '60 min', 'Omar Nasser', '432Hz Studio, Dubai', 'All levels', 'Lie back and be washed over by the harmonics of crystal bowls tuned to 432Hz.', 'A yoga mat or blanket, and an eye pillow if you have one.', 'A full-body sound bath that slows the mind into deep rest.', true),
-    S('Breathwork Journey', 'Breathwork', 140, 14, 7, '18:00', '90 min', 'Layla Haddad', '432Hz Studio, Dubai', 'Intermediate', 'An active breathwork journey to move stuck emotion and energy.', 'Loose clothing, water, and tissues.', 'Conscious connected breathing set to music, followed by quiet integration.', false),
-    S('Guided Meditation: Stillness', 'Guided Meditation', 90, 20, 2, '07:30', '45 min', 'Sara Idris', '432Hz Studio, Dubai', 'Beginner', 'A gentle morning meditation to begin the day grounded and clear.', 'Nothing but yourself.', 'A guided practice in presence and breath awareness.', false),
-    S('Emotional Release Circle', 'Emotional Release', 160, 10, 9, '18:30', '90 min', 'Sara Idris', '432Hz Studio, Dubai', 'All levels', 'A held space to feel, express, and release what you have been carrying.', 'Comfortable clothing and a journal.', 'Somatic movement, sound, and gentle sharing within a safe circle.', false),
-    S('Stress Recovery Restorative', 'Stress Recovery', 130, 16, 12, '19:30', '60 min', 'Omar Nasser', '432Hz Studio, Dubai', 'Beginner', 'Restorative postures and breath to switch off the stress response.', 'A blanket and comfortable layers.', 'Supported rest, long exhales, and deep relaxation.', false),
-    S('Group Healing Ceremony', 'Group Healing', 120, 24, 14, '18:00', '120 min', 'Layla Haddad', '432Hz Studio, Dubai', 'All levels', 'A collective healing ceremony with sound, intention, and community.', 'Water and comfortable clothing.', 'Shared ritual, sound healing, and genuine connection.', true),
-    S('Sunset Sound Meditation', 'Sound Healing', 110, 18, 6, '17:30', '50 min', 'Omar Nasser', '432Hz Studio, Dubai', 'All levels', 'Wind down with a sunset sound meditation as the day softens.', 'A mat or cushion.', 'Gentle sound and guided rest.', false),
-  ]);
+    title: 'Deep Healing Sound Bath', slug: 'deep-healing-sound-bath',
+    category: 'Sound Healing', price: 150, maxSeats: 16,
+    date: dstr(6), time: '19:00', duration: '60 minutes',
+    instructor: 'Omar Nasser', location: '432Hz Studio, Dubai', difficulty: 'All levels — no experience needed',
+    description: 'Lie back and be carried by the harmonics of crystal bowls tuned to 432Hz — a full-body sound bath that melts tension and returns you to deep rest.',
+    about: "There is a particular kind of stillness that is hard to find in a busy life — the moment the mind finally stops running and the body remembers how to rest. The Deep Healing Sound Bath is an hour devoted entirely to reaching it.\n\nYou arrive, settle onto a mat under a blanket, and close your eyes. From there, you do nothing at all. Layered crystal and Tibetan bowls, chimes, gong and voice move slowly through the room in waves, each one tuned to 432Hz — a frequency many describe as warmer and more grounding than standard tuning. The sound washes over and through you, coaxing the nervous system out of fight-or-flight and into deep, parasympathetic calm.\n\nHeld in a candle-lit space by Omar, a certified sound practitioner, this is a gentle, safe, and profoundly restorative experience. Most people leave lighter, clearer, and sleep more deeply that night than they have in weeks.",
+    whatToBring: 'Comfortable clothing you can lie down in, and an eye pillow if you have one. Mats, bolsters, blankets and cushions are all provided — just bring yourself.',
+    whatToExpect: 'A warm welcome and a few minutes to settle. A short grounding breath to arrive. Around 45 minutes of immersive 432Hz sound while you rest. A slow, gentle return, and space to sip tea and integrate before you leave.',
+    benefits: [
+      'Calms an overstimulated nervous system',
+      'Eases anxiety and quiets mental chatter',
+      'Supports deeper, more restorative sleep',
+      'Releases tension held in the body',
+    ],
+    gallery: ['assets/img/abundance.webp', 'assets/img/protection.jpg', 'assets/img/love-2.jpg', 'assets/img/oud-incense.jpg', 'assets/img/love.webp'],
+    coverImage: 'assets/img/abundance.webp',
+    status: 'published', featured: true,
+    cancelPolicy: 'Free cancellation up to 24 hours before the session. Life happens — just let us know.',
+    createdAt: Date.now(),
+  }]);
   writeJSON('bookings.json', []);
   writeJSON('waitlist.json', []);
   writeJSON('session_reviews.json', []);
@@ -335,7 +339,8 @@ async function api(req, res, url) {
         category: b.category || 'Guided Meditation', price: +b.price || 0, maxSeats: +b.maxSeats || 10,
         date: b.date || '', time: b.time || '', duration: b.duration || '', instructor: b.instructor || '',
         location: b.location || '432Hz Studio, Dubai', difficulty: b.difficulty || '',
-        description: b.description || '', whatToBring: b.whatToBring || '', whatToExpect: b.whatToExpect || '',
+        description: b.description || '', about: b.about || '', whatToBring: b.whatToBring || '', whatToExpect: b.whatToExpect || '',
+        benefits: Array.isArray(b.benefits) ? b.benefits : [], gallery: Array.isArray(b.gallery) ? b.gallery : [],
         coverImage: b.coverImage || '', status: b.status || 'draft', featured: !!b.featured,
         cancelPolicy: b.cancelPolicy || 'Free cancellation up to 24 hours before the session.', createdAt: Date.now(),
       };
@@ -345,7 +350,7 @@ async function api(req, res, url) {
       if (!requireAuth()) return;
       const b = await readBody(req); const i = all.findIndex((x) => x.id === id);
       if (i < 0) return sendJSON(res, 404, { error: 'not found' });
-      ['title', 'category', 'price', 'maxSeats', 'date', 'time', 'duration', 'instructor', 'location', 'difficulty', 'description', 'whatToBring', 'whatToExpect', 'coverImage', 'status', 'featured', 'cancelPolicy'].forEach((f) => { if (b[f] !== undefined) all[i][f] = f === 'price' || f === 'maxSeats' ? +b[f] : b[f]; });
+      ['title', 'category', 'price', 'maxSeats', 'date', 'time', 'duration', 'instructor', 'location', 'difficulty', 'description', 'about', 'whatToBring', 'whatToExpect', 'benefits', 'gallery', 'coverImage', 'status', 'featured', 'cancelPolicy'].forEach((f) => { if (b[f] !== undefined) all[i][f] = f === 'price' || f === 'maxSeats' ? +b[f] : b[f]; });
       if (b.title) all[i].slug = b.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       writeJSON('sessions.json', all); return sendJSON(res, 200, all[i]);
     }

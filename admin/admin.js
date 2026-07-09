@@ -297,7 +297,7 @@
   const fmtD = (d) => { if (!d) return '—'; const [y, m, dd] = d.split('-').map(Number); return `${dd} ${MON[m - 1]} ${y}`; };
   const fmtT = (t) => { if (!t) return ''; let [h, mi] = t.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}${mi ? ':' + String(mi).padStart(2, '0') : ''} ${ap}`; };
   const CATS = ['Nervous System Regulation', 'Deep Healing Sessions', 'Guided Meditation', 'Breathwork', 'Emotional Release', 'Stress Recovery', 'Group Healing', 'Sound Healing'];
-  let sessionCache = [];
+  let sessionCache = [], sessImages = [];
 
   async function renderSessions() {
     const v = $('#view'); v.innerHTML = '<div class="empty">Loading…</div>';
@@ -333,9 +333,16 @@
   }
   function openSessionEditor(s) {
     const isNew = !s;
+    sessImages = s ? [...(s.gallery || [])] : [];
     const body = `
       <div class="field"><label>Title</label><input id="s-title" value="${esc(s?.title || '')}"></div>
-      <div class="field"><label>Description</label><textarea id="s-desc" rows="2">${esc(s?.description || '')}</textarea></div>
+      <div class="field"><label>Short description (one line)</label><textarea id="s-desc" rows="2">${esc(s?.description || '')}</textarea></div>
+      <div class="field"><label>Full description / about (blank line = new paragraph)</label><textarea id="s-about" rows="5">${esc(s?.about || '')}</textarea></div>
+      <div class="field"><label>Benefits (one per line)</label><textarea id="s-benefits" rows="3">${esc((s?.benefits || []).join('\n'))}</textarea></div>
+      <div class="field"><label>Photos (first image is the cover)</label><div id="sImgGrid"></div>
+        <input type="file" id="sFileInput" accept="image/*" multiple hidden>
+        <div class="dropzone" id="sDropzone">＋ Upload session photos (JPG, PNG, WEBP)</div>
+      </div>
       <div class="field-row"><div class="field"><label>Category</label><select id="s-cat">${CATS.map((c) => `<option ${s?.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div><div class="field"><label>Instructor</label><input id="s-inst" value="${esc(s?.instructor || '')}"></div></div>
       <div class="field-row-3"><div class="field"><label>Date</label><input id="s-date" type="date" value="${s?.date || ''}"></div><div class="field"><label>Time</label><input id="s-time" type="time" value="${s?.time || ''}"></div><div class="field"><label>Duration</label><input id="s-dur" value="${esc(s?.duration || '')}" placeholder="60 min"></div></div>
       <div class="field-row-3"><div class="field"><label>Price (AED)</label><input id="s-price" type="number" value="${s?.price ?? ''}"></div><div class="field"><label>Max seats</label><input id="s-seats" type="number" value="${s?.maxSeats ?? ''}"></div><div class="field"><label>Difficulty</label><input id="s-diff" value="${esc(s?.difficulty || '')}" placeholder="All levels"></div></div>
@@ -343,13 +350,26 @@
       <div class="field-row"><div class="field"><label>What to bring</label><textarea id="s-bring" rows="2">${esc(s?.whatToBring || '')}</textarea></div><div class="field"><label>What to expect</label><textarea id="s-expect" rows="2">${esc(s?.whatToExpect || '')}</textarea></div></div>
       <div class="field-row"><div class="field"><label>Status</label><select id="s-status"><option value="published" ${s?.status !== 'draft' ? 'selected' : ''}>Published</option><option value="draft" ${s?.status === 'draft' ? 'selected' : ''}>Draft</option></select></div><div class="field"><label>Featured</label><select id="s-feat"><option value="no" ${!s?.featured ? 'selected' : ''}>No</option><option value="yes" ${s?.featured ? 'selected' : ''}>Yes</option></select></div></div>`;
     openDrawer(isNew ? 'New session' : 'Edit session', body, '<button class="btn ghost" id="sCancel">Cancel</button><button class="btn gold" id="sSave">' + (isNew ? 'Create' : 'Save') + '</button>');
+    renderSessImages();
+    $('#sDropzone').addEventListener('click', () => $('#sFileInput').click());
+    $('#sFileInput').addEventListener('change', async (e) => {
+      for (const f of [...e.target.files]) {
+        try { const dataUrl = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(f); }); const { url } = await api('POST', 'upload', { filename: f.name, dataUrl }); sessImages.push(url); renderSessImages(); } catch (err) { toast('Upload failed: ' + err.message); }
+      }
+      e.target.value = '';
+    });
     $('#sCancel').addEventListener('click', closeDrawer);
     $('#sSave').addEventListener('click', async () => {
-      const payload = { title: $('#s-title').value.trim(), description: $('#s-desc').value.trim(), category: $('#s-cat').value, instructor: $('#s-inst').value.trim(), date: $('#s-date').value, time: $('#s-time').value, duration: $('#s-dur').value.trim(), price: +$('#s-price').value || 0, maxSeats: +$('#s-seats').value || 0, difficulty: $('#s-diff').value.trim(), location: $('#s-loc').value.trim(), whatToBring: $('#s-bring').value.trim(), whatToExpect: $('#s-expect').value.trim(), status: $('#s-status').value, featured: $('#s-feat').value === 'yes' };
+      const payload = { title: $('#s-title').value.trim(), description: $('#s-desc').value.trim(), about: $('#s-about').value.trim(), category: $('#s-cat').value, instructor: $('#s-inst').value.trim(), date: $('#s-date').value, time: $('#s-time').value, duration: $('#s-dur').value.trim(), price: +$('#s-price').value || 0, maxSeats: +$('#s-seats').value || 0, difficulty: $('#s-diff').value.trim(), location: $('#s-loc').value.trim(), whatToBring: $('#s-bring').value.trim(), whatToExpect: $('#s-expect').value.trim(), benefits: $('#s-benefits').value.split('\n').map((x) => x.trim()).filter(Boolean), gallery: sessImages, coverImage: sessImages[0] || '', status: $('#s-status').value, featured: $('#s-feat').value === 'yes' };
       if (!payload.title) return toast('Title required');
       if (s) await api('PUT', 'sessions/' + s.id, payload); else await api('POST', 'sessions', payload);
       toast(s ? 'Saved' : 'Session created'); closeDrawer(); renderSessions();
     });
+  }
+  function renderSessImages() {
+    const g = $('#sImgGrid'); if (!g) return; g.className = 'img-grid';
+    g.innerHTML = sessImages.map((url, i) => `<div class="img-cell"><img src="../${url}" alt="">${i === 0 ? '<span style="position:absolute;bottom:4px;left:4px;background:var(--gold);color:var(--pine);font-size:.6rem;padding:.1em .4em;border-radius:4px;font-weight:700">COVER</span>' : ''}<button class="del" data-i="${i}">✕</button></div>`).join('');
+    $$('.del', g).forEach((b) => b.addEventListener('click', () => { sessImages.splice(+b.dataset.i, 1); renderSessImages(); }));
   }
 
   // ================= SESSION BOOKINGS =================

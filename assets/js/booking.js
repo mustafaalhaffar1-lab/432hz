@@ -70,14 +70,14 @@
         <div class="cal-row" data-book="${s.id}"><div class="t">${fmtTime(s.time)}</div><div class="info"><b>${s.title}</b><span>${s.category} · ${s.instructor} · ${s.duration}</span></div>
         <div style="text-align:right"><div class="sess-price">AED ${s.price}</div><div class="seat-txt ${s.remaining <= 3 ? 'low' : ''}" style="margin:0">${s.soldOut ? 'Sold out' : s.remaining + ' seats left'}</div></div></div>`).join('')}</div>`).join('') || '<p style="color:var(--muted)">No sessions match your filters.</p>';
     }
-    $$('[data-book]').forEach((el) => el.addEventListener('click', () => openBooking(el.dataset.book)));
+    $$('[data-book]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); const s = sessions.find((x) => x.id === el.dataset.book); if (s) location.href = 'session.html?slug=' + s.slug; }));
   }
 
   function card(s) {
     const pct = Math.round((s.booked / s.maxSeats) * 100);
     const low = s.remaining <= 3 && s.remaining > 0;
     const cover = s.coverImage ? `<img src="${s.coverImage}" alt="">` : `<div style="position:absolute;inset:0;background:${catGrad(s.category)};display:grid;place-items:center">${ringSvg}</div>`;
-    return `<article class="sess-card">
+    return `<article class="sess-card" data-book="${s.id}" style="cursor:pointer">
       <div class="sess-cover" style="background:${catGrad(s.category)}">${cover}<span class="cat">${s.category}</span>${s.featured ? '<span class="feat">Featured</span>' : ''}</div>
       <div class="sess-body">
         <div class="sess-when"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${fmtDate(s.date)} · ${fmtTime(s.time)}</div>
