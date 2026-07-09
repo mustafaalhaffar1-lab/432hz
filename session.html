@@ -12,72 +12,159 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="assets/css/styles.css">
 <style>
-  /* hero */
-  .sd-hero{position:relative;min-height:88svh;display:flex;align-items:flex-end;color:var(--bone);overflow:hidden}
+  /* ---------- hero ---------- */
+  .sd-hero{position:relative;min-height:96svh;display:flex;align-items:flex-end;color:var(--bone);overflow:hidden}
   .sd-hero .bg{position:absolute;inset:0;z-index:0}
-  .sd-hero .bg img{width:100%;height:100%;object-fit:cover;transform:scale(1.05);animation:kenburns 18s ease-out both}
-  @keyframes kenburns{from{transform:scale(1.12)}to{transform:scale(1)}}
-  .sd-hero::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(15,20,17,.92) 0%,rgba(15,20,17,.35) 45%,rgba(15,20,17,.5) 100%)}
-  .sd-hero .inner{position:relative;z-index:2;padding:0 var(--pad-x) clamp(3rem,7vw,5rem);width:100%;max-width:1400px;margin:0 auto}
+  .sd-hero .bg img{width:100%;height:100%;object-fit:cover;animation:kenburns 22s ease-out both}
+  @keyframes kenburns{from{transform:scale(1.14)}to{transform:scale(1)}}
+  .sd-hero::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(15,20,17,.94) 0%,rgba(15,20,17,.25) 50%,rgba(15,20,17,.45) 100%)}
+  .sd-hero .inner{position:relative;z-index:2;padding:0 var(--pad-x) clamp(3.4rem,8vw,6rem);width:100%;max-width:1400px;margin:0 auto}
   .sd-hero .eyebrow{color:var(--gold-soft)}
-  .sd-hero h1{font-size:var(--fs-mega);line-height:.98;margin:1rem 0;max-width:16ch}
-  .sd-hero .lede{font-size:var(--fs-lead);color:var(--mist);max-width:52ch;margin-bottom:1.6rem}
-  .sd-chips{display:flex;gap:.6rem;flex-wrap:wrap}
-  .sd-chips span{display:inline-flex;align-items:center;gap:.45rem;font-size:.82rem;padding:.5em 1em;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px)}
-  .scroll-hint{position:absolute;bottom:1.4rem;left:50%;transform:translateX(-50%);z-index:3;font-size:.66rem;letter-spacing:.25em;text-transform:uppercase;color:var(--mist);display:flex;flex-direction:column;align-items:center;gap:.5rem}
-  .scroll-hint .bar{width:1px;height:40px;background:linear-gradient(var(--gold),transparent)}
+  .sd-hero h1{font-size:var(--fs-mega);line-height:.96;margin:1rem 0;max-width:14ch}
+  .sd-hero h1 .it{font-style:italic;color:var(--gold-soft)}
+  .sd-hero .lede{font-size:var(--fs-lead);color:var(--mist);max-width:52ch;margin-bottom:1.8rem}
+  .sd-chips{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:2rem}
+  .sd-chips span{display:inline-flex;align-items:center;gap:.45rem;font-size:.82rem;padding:.55em 1.05em;border-radius:100px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px)}
+  .hero-cta{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap}
+  .hero-cta .seats-left{font-size:.8rem;letter-spacing:.06em;color:var(--gold-soft);display:flex;align-items:center;gap:.45rem}
+  .hero-cta .seats-left .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(199,164,90,.5)}50%{box-shadow:0 0 0 7px rgba(199,164,90,0)}}
+  .scroll-hint{position:absolute;bottom:1.4rem;left:50%;transform:translateX(-50%);z-index:3;font-size:.64rem;letter-spacing:.28em;text-transform:uppercase;color:var(--mist);display:flex;flex-direction:column;align-items:center;gap:.5rem}
+  .scroll-hint .bar{width:1px;height:42px;background:linear-gradient(var(--gold),transparent)}
 
-  /* layout */
-  .sd-main{background:var(--bone);padding:clamp(3rem,7vw,6rem) 0}
+  /* ---------- reveal ---------- */
+  .rv{opacity:0;transform:translateY(34px);transition:opacity .95s var(--ease-out),transform .95s var(--ease-out);transition-delay:var(--d,0s)}
+  .rv.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){.rv{opacity:1!important;transform:none!important}.sd-hero .bg img{animation:none}}
+
+  /* ---------- layout ---------- */
+  .sd-main{background:var(--bone);padding:clamp(3.4rem,7vw,6rem) 0 0}
   .sd-grid{width:min(100% - (var(--pad-x)*2),1240px);margin:0 auto;display:grid;grid-template-columns:1fr 380px;gap:clamp(2rem,5vw,4.5rem);align-items:start}
-  .sd-block{margin-bottom:clamp(2.5rem,5vw,4rem)}
-  .sd-block h2{font-size:var(--fs-h2);margin-bottom:1.2rem}
+  .sd-block{margin-bottom:clamp(3rem,6vw,4.5rem)}
+  .sd-block h2{font-size:var(--fs-h2);margin-bottom:1.4rem}
   .sd-block h2 .it{font-style:italic;color:var(--clay)}
-  .sd-about p{font-size:1.12rem;line-height:1.8;color:var(--ink-soft);margin-bottom:1.3rem}
-  .sd-about p:first-of-type::first-letter{font-family:var(--display);font-size:3.4rem;float:left;line-height:.8;padding:.1em .12em 0 0;color:var(--clay)}
+  .sd-about p{font-size:1.13rem;line-height:1.85;color:var(--ink-soft);margin-bottom:1.4rem}
+  .sd-about p:first-of-type::first-letter{font-family:var(--display);font-size:3.6rem;float:left;line-height:.78;padding:.12em .14em 0 0;color:var(--clay)}
+
+  /* benefits */
   .benefits{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-  .benefits li{display:flex;gap:.8rem;align-items:flex-start;padding:1.1rem 1.2rem;background:var(--bone-deep);border-radius:14px;font-size:.98rem}
+  .benefits li{display:flex;gap:.85rem;align-items:flex-start;padding:1.15rem 1.25rem;background:var(--bone-deep);border-radius:14px;font-size:.98rem;line-height:1.5}
   .benefits li svg{color:var(--gold);flex:0 0 auto;margin-top:2px}
-  .gallery{display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:120px;gap:.8rem}
+
+  /* journey timeline */
+  .journey{position:relative;padding-left:2.4rem}
+  .journey::before{content:"";position:absolute;left:11px;top:12px;bottom:26px;width:1.5px;background:linear-gradient(var(--gold),var(--sand))}
+  .j-step{position:relative;padding-bottom:2.1rem}
+  .j-step:last-child{padding-bottom:0}
+  .j-step::before{content:"";position:absolute;left:-2.4rem;top:6px;width:23px;height:23px;border-radius:50%;background:var(--bone);border:1.5px solid var(--gold)}
+  .j-step::after{content:"";position:absolute;left:calc(-2.4rem + 7px);top:13px;width:9px;height:9px;border-radius:50%;background:var(--gold)}
+  .j-step .n{font-family:var(--display);font-style:italic;color:var(--clay);font-size:.95rem;letter-spacing:.06em}
+  .j-step h3{font-size:1.4rem;margin:.15rem 0 .35rem}
+  .j-step p{color:var(--muted);line-height:1.65;max-width:56ch}
+
+  /* gallery */
+  .gallery{display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:130px;gap:.8rem}
   .gallery a{border-radius:14px;overflow:hidden;position:relative;display:block}
-  .gallery a img{width:100%;height:100%;object-fit:cover;transition:transform .7s var(--ease-out)}
+  .gallery a img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease-out)}
   .gallery a:hover img{transform:scale(1.06)}
   .gallery a:nth-child(1){grid-column:span 4;grid-row:span 2}
   .gallery a:nth-child(2){grid-column:span 2;grid-row:span 1}
   .gallery a:nth-child(3){grid-column:span 2;grid-row:span 1}
   .gallery a:nth-child(4){grid-column:span 3;grid-row:span 1}
   .gallery a:nth-child(5){grid-column:span 3;grid-row:span 1}
-  .sd-cols{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:clamp(2.5rem,5vw,4rem)}
+
+  /* for-you */
+  .foryou{background:var(--bone-deep);border-radius:var(--radius-lg);padding:clamp(1.8rem,4vw,2.6rem)}
+  .foryou h2{font-size:clamp(1.6rem,3vw,2.2rem)!important}
+  .foryou ul{list-style:none;display:grid;gap:.85rem;margin-top:1.4rem}
+  .foryou li{display:flex;gap:.8rem;align-items:flex-start;font-size:1.02rem;color:var(--ink-soft);line-height:1.55}
+  .foryou li svg{color:var(--clay);flex:0 0 auto;margin-top:3px}
+  .foryou .note{margin-top:1.4rem;font-family:var(--display);font-style:italic;font-size:1.15rem;color:var(--pine)}
+
+  /* what to expect / bring */
+  .sd-cols{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:clamp(3rem,6vw,4.5rem)}
   .sd-cols h3{font-size:1.3rem;margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem}
   .sd-cols h3 svg{color:var(--clay)}
   .sd-cols p{color:var(--muted);line-height:1.7}
-  .instructor{display:flex;gap:1.4rem;align-items:center;background:var(--pine);color:var(--bone);border-radius:var(--radius-lg);padding:1.8rem}
-  .instructor .av{width:72px;height:72px;border-radius:50%;flex:0 0 auto;background:linear-gradient(135deg,var(--gold),var(--clay));display:grid;place-items:center;font-family:var(--display);font-size:1.8rem;color:var(--pine)}
+
+  /* instructor */
+  .instructor{display:flex;gap:1.5rem;align-items:center;background:var(--pine);color:var(--bone);border-radius:var(--radius-lg);padding:2rem;position:relative;overflow:hidden}
+  .instructor::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;border:1px solid rgba(199,164,90,.25)}
+  .instructor .av{width:80px;height:80px;border-radius:50%;flex:0 0 auto;background:linear-gradient(135deg,var(--gold),var(--clay));display:grid;place-items:center;font-family:var(--display);font-size:2rem;color:var(--pine)}
   .instructor h4{font-family:var(--sans);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-soft);margin-bottom:.3rem}
-  .instructor b{font-family:var(--display);font-size:1.4rem;font-weight:400;display:block}
-  .instructor p{color:var(--mist);font-size:.9rem;margin-top:.3rem}
+  .instructor b{font-family:var(--display);font-size:1.5rem;font-weight:400;display:block}
+  .instructor p{color:var(--mist);font-size:.92rem;margin-top:.4rem;max-width:48ch}
+
+  /* breathing interlude (full-bleed) */
+  .breathe{background:radial-gradient(120% 130% at 50% 0%,#26342c,var(--pine) 55%,var(--pine-deep));color:var(--bone);text-align:center;padding:clamp(4.5rem,10vw,8rem) var(--pad-x);position:relative;overflow:hidden;margin:clamp(3rem,7vw,5.5rem) 0 0}
+  .breathe .eyebrow{color:var(--gold);justify-content:center}
+  .breathe h2{font-size:var(--fs-h2);margin:.8rem 0 .6rem}
+  .breathe h2 .it{font-style:italic;color:var(--gold-soft)}
+  .breathe .sub{color:var(--mist);max-width:44ch;margin:0 auto}
+  .orb-wrap{position:relative;width:min(280px,60vw);aspect-ratio:1;margin:3rem auto 1.6rem;display:grid;place-items:center}
+  .orb{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 42%,rgba(223,199,142,.5),rgba(199,164,90,.16) 55%,transparent 72%);animation:breath 10s ease-in-out infinite;filter:blur(2px)}
+  .orb.r2{animation-delay:-.35s;opacity:.55;transform:scale(1.18)}
+  .orb-core{position:relative;z-index:2;width:44%;aspect-ratio:1;border-radius:50%;border:1px solid rgba(223,199,142,.65);display:grid;place-items:center;animation:breathCore 10s ease-in-out infinite}
+  @keyframes breath{0%,100%{transform:scale(.72);opacity:.55}40%{transform:scale(1.05);opacity:1}55%{transform:scale(1.05);opacity:1}}
+  @keyframes breathCore{0%,100%{transform:scale(.82)}40%,55%{transform:scale(1.12)}}
+  .breath-label{font-family:var(--display);font-style:italic;font-size:1.25rem;color:var(--gold-soft);height:1.6em;position:relative;z-index:2}
+  .breathe .hint{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--mist)}
+  @media(prefers-reduced-motion:reduce){.orb,.orb-core{animation:none}}
+
+  /* testimonials */
+  .sd-quotes{background:var(--bone-deep);padding:clamp(3.5rem,7vw,5.5rem) var(--pad-x)}
+  .sd-quotes .inner{max-width:1240px;margin:0 auto}
+  .q-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4rem;margin-top:2.4rem}
+  .q-card{background:var(--bone);border-radius:var(--radius-lg);padding:1.9rem;box-shadow:0 18px 45px -38px rgba(20,24,26,.5)}
+  .q-card .stars{color:var(--gold);letter-spacing:.12em;font-size:.95rem}
+  .q-card blockquote{font-family:var(--display);font-size:1.28rem;line-height:1.4;margin:.9rem 0 1.2rem;letter-spacing:-.01em}
+  .q-card .who{display:flex;align-items:center;gap:.7rem;font-size:.85rem;color:var(--muted)}
+  .q-card .who .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--clay));display:grid;place-items:center;color:var(--pine);font-weight:700;font-family:var(--display)}
+
+  /* faq */
+  .sd-faq{max-width:760px;margin:0 auto;padding:clamp(3.5rem,7vw,5.5rem) var(--pad-x)}
+  .fq{border-bottom:1px solid var(--line)}
+  .fq button{width:100%;display:flex;justify-content:space-between;gap:1rem;padding:1.4rem 0;text-align:left;font-family:var(--display);font-size:1.25rem}
+  .fq .pm{color:var(--gold);transition:transform .3s;flex:0 0 auto}
+  .fq.open .pm{transform:rotate(45deg)}
+  .fq .a{max-height:0;overflow:hidden;transition:max-height .4s var(--ease)}
+  .fq .a p{padding-bottom:1.4rem;color:var(--muted);line-height:1.7}
+
+  /* final cta */
+  .final-cta{background:radial-gradient(120% 130% at 50% 100%,#26342c,var(--pine-deep));color:var(--bone);text-align:center;padding:clamp(4.5rem,9vw,7rem) var(--pad-x)}
+  .final-cta h2{font-size:var(--fs-h1);max-width:16ch;margin:0 auto 1rem}
+  .final-cta h2 .it{font-style:italic;color:var(--gold-soft)}
+  .final-cta p{color:var(--mist);max-width:44ch;margin:0 auto 2rem}
 
   /* booking card */
   .sd-book{position:sticky;top:5.5rem}
-  .book-card{background:var(--bone);border:1px solid var(--line);border-radius:20px;padding:1.8rem;box-shadow:var(--shadow-card)}
+  .book-card{background:var(--bone);border:1px solid var(--line);border-radius:20px;padding:1.8rem;box-shadow:var(--shadow-card);position:relative;overflow:hidden}
+  .book-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold-soft),var(--gold))}
   .book-card .price{font-family:var(--display);font-size:2.4rem;line-height:1}
   .book-card .price small{font-size:.9rem;color:var(--muted);font-family:var(--sans)}
+  .book-count{display:flex;gap:.9rem;margin:1.1rem 0 0;padding:.85rem 1rem;background:var(--bone-deep);border-radius:12px;align-items:center;justify-content:center}
+  .book-count .u{text-align:center;min-width:34px}
+  .book-count .u b{font-family:var(--display);font-size:1.25rem;display:block;line-height:1}
+  .book-count .u span{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .book-count .lbl{font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--clay);max-width:7ch;line-height:1.35}
   .book-seatbar{height:6px;border-radius:6px;background:var(--sand);overflow:hidden;margin:1.2rem 0 .5rem}
   .book-seatbar i{display:block;height:100%;background:linear-gradient(90deg,var(--sage),var(--gold))}
   .book-seats{font-size:.82rem;color:var(--muted)}
   .book-seats.low{color:var(--clay);font-weight:600}
-  .book-rows{margin:1.4rem 0;border-top:1px solid var(--line)}
-  .book-row{display:flex;gap:.8rem;align-items:center;padding:.8rem 0;border-bottom:1px solid var(--line);font-size:.92rem}
+  .book-rows{margin:1.3rem 0;border-top:1px solid var(--line)}
+  .book-row{display:flex;gap:.8rem;align-items:center;padding:.75rem 0;border-bottom:1px solid var(--line);font-size:.9rem}
   .book-row svg{color:var(--clay);flex:0 0 auto}
   .book-row b{margin-left:auto;text-align:right}
   .book-card .btn{width:100%;justify-content:center;margin-bottom:.7rem}
-  .book-note{font-size:.78rem;color:var(--muted);text-align:center;display:flex;gap:.4rem;justify-content:center;align-items:center}
+  .book-note{font-size:.78rem;color:var(--muted);text-align:center;display:flex;gap:.4rem;justify-content:center;align-items:center;flex-wrap:wrap}
   .book-note svg{color:var(--sage)}
+  .book-proof{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted);text-align:center}
+  .book-proof .stars{color:var(--gold)}
 
-  /* mobile book bar */
-  .mbar{position:fixed;left:0;right:0;bottom:0;z-index:80;background:rgba(245,241,232,.95);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:.9rem var(--pad-x);display:none;justify-content:space-between;align-items:center;gap:1rem}
-  .mbar .p{font-family:var(--display);font-size:1.4rem}
-  .mbar .p small{font-size:.7rem;color:var(--muted);font-family:var(--sans)}
+  /* mobile bar */
+  .mbar{position:fixed;left:0;right:0;bottom:0;z-index:80;background:rgba(245,241,232,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:.85rem var(--pad-x);display:none;justify-content:space-between;align-items:center;gap:1rem}
+  .mbar .p{font-family:var(--display);font-size:1.35rem}
+  .mbar .p small{font-size:.68rem;color:var(--muted);font-family:var(--sans);display:block}
 
   /* modal (shared) */
   .m-overlay{position:fixed;inset:0;background:rgba(15,20,17,.55);backdrop-filter:blur(4px);z-index:200;opacity:0;visibility:hidden;transition:.4s var(--ease);display:grid;place-items:center;padding:1.2rem}
@@ -108,7 +195,16 @@
   .cal-btns{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:1.4rem 0}
   .cal-btns a,.cal-btns button{font-size:.8rem;padding:.7em 1.2em;border:1px solid var(--line);border-radius:100px;display:inline-flex;gap:.4rem;align-items:center;background:#fff;transition:.3s}.cal-btns a:hover,.cal-btns button:hover{border-color:var(--gold)}
 
-  @media(max-width:900px){.sd-grid{grid-template-columns:1fr}.sd-book{position:static;margin-bottom:0}.book-card{display:none}.mbar{display:flex}.sd-main{padding-bottom:6rem}.benefits{grid-template-columns:1fr}.sd-cols{grid-template-columns:1fr}.gallery{grid-template-columns:repeat(2,1fr);grid-auto-rows:140px}.gallery a:nth-child(n){grid-column:span 1;grid-row:span 1}.gallery a:nth-child(1){grid-column:span 2;grid-row:span 2}}
+  @media(max-width:900px){
+    .sd-grid{grid-template-columns:1fr}
+    .sd-book{position:static}.book-card{display:none}.mbar{display:flex}
+    .sd-main{padding-bottom:1rem}body{padding-bottom:70px}
+    .benefits{grid-template-columns:1fr}.sd-cols{grid-template-columns:1fr}
+    .q-grid{grid-template-columns:1fr}
+    .gallery{grid-template-columns:repeat(2,1fr);grid-auto-rows:140px}
+    .gallery a:nth-child(n){grid-column:span 1;grid-row:span 1}
+    .gallery a:nth-child(1){grid-column:span 2;grid-row:span 2}
+  }
 </style>
 </head>
 <body>
@@ -129,6 +225,12 @@
   </div>
 </footer>
 
+<!-- 432Hz ambient tone -->
+<button class="sound-toggle" id="soundToggle" aria-label="Toggle 432Hz ambient sound">
+  <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+  <span class="label"><b>432Hz</b> tone <span class="state">off</span></span>
+</button>
+
 <!-- modal -->
 <div class="m-overlay" id="modal"><div class="modal"><div class="m-head"><h3 id="mTitle">Reserve</h3><button class="close-x" id="mClose" aria-label="Close"><svg width="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="m-body" id="mBody"></div></div></div>
 
@@ -138,6 +240,7 @@
 <script>
 (() => {
   const $=(s,c=document)=>c.querySelector(s);
+  const $$=(s,c=document)=>[...c.querySelectorAll(s)];
   const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const pad=n=>String(n).padStart(2,'0');
   const fmtDate=d=>{const[y,m,dd]=d.split('-').map(Number);const dt=new Date(y,m-1,dd);return `${DOW[dt.getDay()]}, ${dd} ${MON[m-1]}`;};
@@ -145,78 +248,157 @@
   const root=$('#sdRoot');
   const p=new URLSearchParams(location.search); const key=p.get('slug')||p.get('id');
   document.getElementById('year').textContent=new Date().getFullYear();
-  let session=null;
+  let session=null,cdTimer=null;
 
-  function load(){return fetch('/api/sessions/'+(key||'')).then(r=>r.json());}
+  const load=()=>fetch('/api/sessions/'+(key||'')).then(r=>r.json());
   (key?load():fetch('/api/sessions').then(r=>r.json()).then(a=>a[0])).then(s=>{
     if(!s||s.error){root.innerHTML='<div style="min-height:60vh;display:grid;place-items:center;text-align:center"><div><h1 style="font-family:var(--display);font-size:2.4rem">Session not found</h1><p style="margin:1rem 0"><a class="btn" href="healing.html"><span>See all sessions</span></a></p></div></div>';return;}
     session=s; document.title=s.title+' — 432Hz Healing'; render(s);
   });
+  function refresh(){load().then(s=>{if(s&&!s.error){session=s;renderCard(s);}});}
 
-  function refresh(){load().then(s=>{if(s&&!s.error){session=s;updateSeats(s);}});}
+  const ic={clock:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',cal:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',pin:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>',user:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>',level:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>',check:'<svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m5 12 4 4L19 7"/></svg>',shield:'<svg width="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3 5 6v5c0 4 3 7 7 8 4-1 7-4 7-8V6l-7-3Z"/></svg>',heart:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-7-4.5-9.5-9C1 9 2.5 5 6 5c2 0 3.2 1.2 4 2.5C10.8 6.2 12 5 14 5c3.5 0 5 4 3.5 7-2.5 4.5-9.5 9-9.5 9Z"/></svg>'};
 
-  const ic={clock:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',cal:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',pin:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>',user:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>',level:'<svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>',check:'<svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m5 12 4 4L19 7"/></svg>',shield:'<svg width="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3 5 6v5c0 4 3 7 7 8 4-1 7-4 7-8V6l-7-3Z"/></svg>'};
+  const QUOTES=[
+    {n:'Reem',t:'I walked in with my shoulders around my ears and walked out feeling like I\'d slept for a week. I booked the next one before I left the building.'},
+    {n:'Yousef',t:'I\'m not a "meditation person". This didn\'t ask me to be. The breathwork alone was worth it — and I slept nine hours that night.'},
+    {n:'Hana',t:'Hajar holds the room so gently. For the first time in months my mind actually went quiet. I can\'t explain it — you have to feel it.'},
+  ];
+  const FAQ=[
+    ['I\'ve never done breathwork or sound healing. Is that okay?','Completely. Most guests are first-timers. Hajar guides every step out loud, and there is nothing to get right — your only job is to lie down and breathe.'],
+    ['What should I wear?','Anything you can breathe and lie down in comfortably. Most people come in loungewear. Mats, bolsters, blankets and eye pillows are all provided.'],
+    ['Is it safe if I\'m anxious or going through a hard time?','Yes — the session is specifically designed to down-regulate an anxious system, and everything is invitational. You can simply rest through any part. If you\'re pregnant or have a heart condition, message us first and we\'ll advise.'],
+    ['What if I need to cancel?','Free cancellation up to 24 hours before the session, straight from your ticket — no questions asked.'],
+  ];
 
   function render(s){
-    const cover=s.coverImage?`<img src="${s.coverImage}" alt="${s.title}">`:'';
     const gallery=(s.gallery&&s.gallery.length)?s.gallery:(s.coverImage?[s.coverImage]:[]);
+    const cover=s.coverImage||gallery[0]||'';
     const aboutHTML=(s.about||s.description||'').split(/\n\n+/).map(x=>`<p>${x.trim()}</p>`).join('');
+    const journey=(s.journey&&s.journey.length)?s.journey:null;
     root.innerHTML=`
       <section class="sd-hero">
-        <div class="bg">${cover}</div>
+        <div class="bg">${cover?`<img src="${cover}" alt="${s.title}">`:''}</div>
         <div class="inner">
-          <span class="eyebrow">${s.category} · 432Hz</span>
-          <h1 class="display">${s.title}</h1>
+          <span class="eyebrow">${s.category} · with ${s.instructor}</span>
+          <h1 class="display">${s.title.replace(/Reset/i,'<span class="it">Reset</span>')}</h1>
           <p class="lede">${s.description||''}</p>
           <div class="sd-chips">
             <span>${ic.cal} ${fmtDate(s.date)}</span><span>${ic.clock} ${fmtTime(s.time)} · ${s.duration}</span>
-            <span>${ic.user} ${s.instructor}</span><span>${ic.pin} ${s.location}</span>
+            <span>${ic.pin} ${s.location}</span><span>${ic.level} ${s.difficulty||'All levels'}</span>
+          </div>
+          <div class="hero-cta">
+            <button class="btn btn-light" id="heroReserve"><span>${s.soldOut?'Join the waiting list':'Reserve your spot — AED '+s.price}</span> <span class="arrow">→</span></button>
+            ${s.soldOut?'':`<span class="seats-left"><span class="dot"></span> ${s.remaining<=5?'Only '+s.remaining+' of '+s.maxSeats+' places left':s.remaining+' of '+s.maxSeats+' places available'}</span>`}
           </div>
         </div>
         <div class="scroll-hint"><span>Scroll</span><span class="bar"></span></div>
       </section>
+
       <section class="sd-main"><div class="sd-grid">
         <div class="sd-content">
-          <div class="sd-block sd-about"><h2>The <span class="it">experience</span></h2>${aboutHTML}</div>
-          ${s.benefits&&s.benefits.length?`<div class="sd-block"><h2>How you'll feel</h2><ul class="benefits">${s.benefits.map(b=>`<li>${ic.check}<span>${b}</span></li>`).join('')}</ul></div>`:''}
-          ${gallery.length?`<div class="sd-block"><h2>Inside the space</h2><div class="gallery">${gallery.slice(0,5).map(g=>`<a href="${g}" target="_blank" rel="noopener"><img src="${g}" alt="" loading="lazy"></a>`).join('')}</div></div>`:''}
-          <div class="sd-cols">
+          <div class="sd-block sd-about rv"><h2>The <span class="it">experience</span></h2>${aboutHTML}</div>
+          ${s.benefits&&s.benefits.length?`<div class="sd-block rv"><h2>How you'll <span class="it">feel</span></h2><ul class="benefits">${s.benefits.map(b=>`<li>${ic.check}<span>${b}</span></li>`).join('')}</ul></div>`:''}
+          ${journey?`<div class="sd-block rv"><h2>Your 75 minutes, <span class="it">held.</span></h2><div class="journey">${journey.map((st,i)=>`<div class="j-step"><span class="n">Step ${pad(i+1)}</span><h3>${st[0]}</h3><p>${st[1]}</p></div>`).join('')}</div></div>`:''}
+          ${gallery.length?`<div class="sd-block rv"><h2>Inside the <span class="it">space</span></h2><div class="gallery">${gallery.slice(0,5).map(g=>`<a href="${g}" target="_blank" rel="noopener"><img src="${g}" alt="" loading="lazy"></a>`).join('')}</div></div>`:''}
+          <div class="sd-block foryou rv">
+            <h2>This is for you if…</h2>
+            <ul>
+              <li>${ic.heart}<span>Your mind races the moment your head touches the pillow</span></li>
+              <li>${ic.heart}<span>You feel "tired but wired" — exhausted, yet unable to switch off</span></li>
+              <li>${ic.heart}<span>Your jaw, neck or shoulders quietly carry your stress all day</span></li>
+              <li>${ic.heart}<span>You can't remember the last time you did nothing — and it felt safe</span></li>
+            </ul>
+            <p class="note">If any of these feel familiar, your nervous system is asking for this hour.</p>
+          </div>
+          <div class="sd-cols rv">
             <div><h3>${ic.check} What to expect</h3><p>${s.whatToExpect||''}</p></div>
             <div><h3>${ic.check} What to bring</h3><p>${s.whatToBring||''}</p></div>
           </div>
-          <div class="sd-block instructor"><div class="av">${(s.instructor||'?')[0]}</div><div><h4>Your guide</h4><b>${s.instructor}</b><p>A certified sound &amp; breath practitioner holding this space with warmth and care.</p></div></div>
+          <div class="sd-block instructor rv"><div class="av">${(s.instructor||'?')[0]}</div><div><h4>Your guide</h4><b>${s.instructor}</b><p>A dedicated breathwork &amp; sound practitioner, Hajar holds space with rare warmth — guiding each guest gently from a racing mind into deep, embodied calm.</p></div></div>
         </div>
         <aside class="sd-book"><div class="book-card" id="bookCard"></div></aside>
-      </div></section>`;
+      </div></section>
+
+      <section class="breathe">
+        <span class="eyebrow center">Try it now</span>
+        <h2>Take one breath <span class="it">with us.</span></h2>
+        <p class="sub">Follow the circle. In through the nose as it grows… and slowly out as it softens. This is a taste of the first five minutes.</p>
+        <div class="orb-wrap"><div class="orb"></div><div class="orb r2"></div><div class="orb-core"><svg width="34" viewBox="0 0 24 24" fill="none" stroke="rgba(223,199,142,.9)" stroke-width="1.2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" opacity=".5"/><circle cx="12" cy="12" r="11" opacity=".25"/></svg></div></div>
+        <div class="breath-label" id="breathLabel">Breathe in…</div>
+        <div class="hint">4 seconds in · 6 seconds out</div>
+      </section>
+
+      <section class="sd-quotes"><div class="inner">
+        <span class="eyebrow rv">After the reset</span>
+        <h2 class="rv" style="font-size:var(--fs-h2)">In their <span style="font-style:italic;color:var(--clay)">words.</span></h2>
+        <div class="q-grid">
+          ${QUOTES.map((q,i)=>`<div class="q-card rv" style="--d:${i*0.12}s"><span class="stars">★★★★★</span><blockquote>"${q.t}"</blockquote><div class="who"><span class="av">${q.n[0]}</span><div><b>${q.n}</b> · Verified attendee</div></div></div>`).join('')}
+        </div>
+      </div></section>
+
+      <section class="sd-faq">
+        <span class="eyebrow rv">Good to know</span>
+        <h2 class="rv" style="font-size:var(--fs-h2);margin-bottom:1.2rem">Questions, <span style="font-style:italic;color:var(--clay)">answered.</span></h2>
+        ${FAQ.map(f=>`<div class="fq"><button>${f[0]} <span class="pm">+</span></button><div class="a"><p>${f[1]}</p></div></div>`).join('')}
+      </section>
+
+      <section class="final-cta">
+        <span class="eyebrow center rv" style="color:var(--gold);justify-content:center">${fmtDate(s.date)} · ${fmtTime(s.time)}</span>
+        <h2 class="rv">Your nervous system has been <span class="it">waiting</span> for this.</h2>
+        <p class="rv">One evening. ${s.maxSeats} mats. A room that asks nothing of you at all.</p>
+        <button class="btn btn-light rv" id="finalReserve"><span>${s.soldOut?'Join the waiting list':'Reserve your spot — AED '+s.price}</span> <span class="arrow">→</span></button>
+      </section>`;
     renderCard(s);
-    // header over hero
-    $('#header').classList.remove('scrolled');
+    wireStatic();
   }
 
-  function cardInner(s){
+  function countdownHTML(){return `<div class="book-count"><span class="lbl">Begins in</span><div class="u"><b id="bc-d">–</b><span>Days</span></div><div class="u"><b id="bc-h">–</b><span>Hrs</span></div><div class="u"><b id="bc-m">–</b><span>Min</span></div><div class="u"><b id="bc-s">–</b><span>Sec</span></div></div>`;}
+  function startCountdown(s){
+    const target=new Date(`${s.date}T${s.time}`);
+    clearInterval(cdTimer);
+    const tick=()=>{let diff=Math.max(0,target-new Date());const d=Math.floor(diff/864e5);diff-=d*864e5;const h=Math.floor(diff/36e5);diff-=h*36e5;const m=Math.floor(diff/6e4);const sec=Math.floor((diff-m*6e4)/1000);
+      const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+      set('bc-d',d);set('bc-h',pad(h));set('bc-m',pad(m));set('bc-s',pad(sec));};
+    tick();cdTimer=setInterval(tick,1000);
+  }
+  function renderCard(s){
     const pct=Math.round(s.booked/s.maxSeats*100); const low=s.remaining<=5&&s.remaining>0;
-    return `<div class="price">AED ${s.price} <small>/ person</small></div>
+    $('#bookCard').innerHTML=`<div class="price">AED ${s.price} <small>/ person</small></div>
+      ${countdownHTML()}
       <div class="book-seatbar"><i style="width:${pct}%"></i></div>
-      <div class="book-seats ${low?'low':''}">${s.soldOut?'Sold out — join the waiting list':(low?`Only ${s.remaining} seats left`:`${s.remaining} of ${s.maxSeats} seats available`)}</div>
+      <div class="book-seats ${low?'low':''}">${s.soldOut?'Sold out — join the waiting list':(low?`Only ${s.remaining} places left`:`${s.remaining} of ${s.maxSeats} places available`)}</div>
       <div class="book-rows">
         <div class="book-row">${ic.cal} Date <b>${fmtDate(s.date)}</b></div>
-        <div class="book-row">${ic.clock} Time <b>${fmtTime(s.time)}</b></div>
-        <div class="book-row">${ic.clock} Duration <b>${s.duration}</b></div>
+        <div class="book-row">${ic.clock} Time <b>${fmtTime(s.time)} · ${s.duration}</b></div>
         <div class="book-row">${ic.user} Guide <b>${s.instructor}</b></div>
-        <div class="book-row">${ic.level} Level <b>${s.difficulty||'All levels'}</b></div>
+        <div class="book-row">${ic.level} Level <b>${s.difficulty?s.difficulty.split(' — ')[0]:'All levels'}</b></div>
         <div class="book-row">${ic.pin} Location <b>${s.location}</b></div>
       </div>
       <button class="btn ${s.soldOut?'btn-ghost':''}" id="reserveBtn"><span>${s.soldOut?'Join waiting list':'Reserve your spot'}</span> ${s.soldOut?'':'<span class="arrow">→</span>'}</button>
-      <div class="book-note">${ic.shield} ${s.cancelPolicy||'Free cancellation up to 24h before.'}</div>`;
-  }
-  function renderCard(s){ $('#bookCard').innerHTML=cardInner(s); wireReserve();
-    // mobile bar
+      <div class="book-note">${ic.shield} ${s.cancelPolicy||'Free cancellation up to 24h before.'}</div>
+      <div class="book-proof"><span class="stars">★★★★★</span> Loved by our community · Small group of ${s.maxSeats}</div>`;
     if(!$('#mbar')){const bar=document.createElement('div');bar.className='mbar';bar.id='mbar';document.body.appendChild(bar);}
-    $('#mbar').innerHTML=`<div class="p">AED ${s.price} <small>/ person</small></div><button class="btn ${s.soldOut?'btn-ghost':''}" id="reserveBtnM"><span>${s.soldOut?'Waiting list':'Reserve'}</span></button>`;
+    $('#mbar').innerHTML=`<div class="p">AED ${s.price} <small>${s.soldOut?'Sold out':(s.remaining<=5?'Only '+s.remaining+' left':s.remaining+' places left')}</small></div><button class="btn ${s.soldOut?'btn-ghost':''}" id="reserveBtnM"><span>${s.soldOut?'Waiting list':'Reserve'}</span></button>`;
+    startCountdown(s);
     wireReserve();
   }
-  function updateSeats(s){ renderCard(s); }
-  function wireReserve(){ ['reserveBtn','reserveBtnM'].forEach(id=>{const b=document.getElementById(id);if(b)b.onclick=()=>BookingModal.open(session,{onClose:refresh});}); }
+  function wireReserve(){['reserveBtn','reserveBtnM','heroReserve','finalReserve'].forEach(id=>{const b=document.getElementById(id);if(b)b.onclick=()=>BookingModal.open(session,{onClose:refresh});});}
+  function wireStatic(){
+    // reveal on scroll
+    const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12,rootMargin:'0px 0px -8% 0px'});
+    $$('.rv').forEach(el=>io.observe(el));
+    // breath label sync (10s cycle: 4s in, 6s out)
+    const lbl=$('#breathLabel');
+    if(lbl&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      const cycle=()=>{lbl.textContent='Breathe in…';setTimeout(()=>{lbl.textContent='…and slowly out';},4000);};
+      cycle();setInterval(cycle,10000);
+    }
+    // faq
+    $$('.fq button').forEach(b=>b.addEventListener('click',()=>{const it=b.parentElement,a=it.querySelector('.a');const o=it.classList.toggle('open');a.style.maxHeight=o?a.scrollHeight+'px':0;}));
+    // header transparency over hero
+    $('#header').classList.remove('scrolled');
+  }
 })();
 </script>
 </body>

@@ -70,22 +70,31 @@ function seed() {
   const dstr = (offsetDays) => { const d = new Date(Date.now() + offsetDays * 86400000); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   writeJSON('sessions.json', [{
     id: 's_' + crypto.randomBytes(5).toString('hex'),
-    title: 'Deep Healing Sound Bath', slug: 'deep-healing-sound-bath',
-    category: 'Sound Healing', price: 150, maxSeats: 16,
-    date: dstr(6), time: '19:00', duration: '60 minutes',
-    instructor: 'Omar Nasser', location: '432Hz Studio, Dubai', difficulty: 'All levels — no experience needed',
-    description: 'Lie back and be carried by the harmonics of crystal bowls tuned to 432Hz — a full-body sound bath that melts tension and returns you to deep rest.',
-    about: "There is a particular kind of stillness that is hard to find in a busy life — the moment the mind finally stops running and the body remembers how to rest. The Deep Healing Sound Bath is an hour devoted entirely to reaching it.\n\nYou arrive, settle onto a mat under a blanket, and close your eyes. From there, you do nothing at all. Layered crystal and Tibetan bowls, chimes, gong and voice move slowly through the room in waves, each one tuned to 432Hz — a frequency many describe as warmer and more grounding than standard tuning. The sound washes over and through you, coaxing the nervous system out of fight-or-flight and into deep, parasympathetic calm.\n\nHeld in a candle-lit space by Omar, a certified sound practitioner, this is a gentle, safe, and profoundly restorative experience. Most people leave lighter, clearer, and sleep more deeply that night than they have in weeks.",
-    whatToBring: 'Comfortable clothing you can lie down in, and an eye pillow if you have one. Mats, bolsters, blankets and cushions are all provided — just bring yourself.',
-    whatToExpect: 'A warm welcome and a few minutes to settle. A short grounding breath to arrive. Around 45 minutes of immersive 432Hz sound while you rest. A slow, gentle return, and space to sip tea and integrate before you leave.',
+    title: 'Nervous System Reset', slug: 'nervous-system-reset',
+    category: 'Nervous System Regulation', price: 180, maxSeats: 12,
+    date: dstr(6), time: '18:30', duration: '75 minutes',
+    instructor: 'Hajar Bourri', location: '432Hz Studio, Dubai', difficulty: 'All levels — no experience needed',
+    description: 'A deeply grounding evening of breath, sound, and gentle somatic work — designed to switch your body out of survival mode and back into calm.',
+    about: "Your nervous system was never designed for this much noise. The notifications, the deadlines, the traffic, the constant low hum of being needed — over time, the body forgets how to switch off, and \"tired but wired\" starts to feel normal.\n\nThe Nervous System Reset is 75 minutes designed to undo exactly that. Guided by Hajar Bourri, you'll move slowly through three layers of release: conscious breathwork to discharge stored tension, a warm 432Hz sound immersion that carries the mind somewhere words can't reach, and gentle somatic work that lets the body finish what it has been holding.\n\nThere is nothing to perform and nothing to get right. You'll be held in a candle-lit room with a small circle of others, wrapped in a blanket, guided the entire way. Most people describe the last twenty minutes as the deepest rest they've had in months — and the sleep that follows as something they'd forgotten was possible.",
+    whatToBring: 'Comfortable clothing you can breathe and lie down in, and a water bottle. Mats, bolsters, blankets and eye pillows are all provided — just bring yourself.',
+    whatToExpect: 'A warm welcome and herbal tea as you arrive. Guided breathwork to release the day. A 432Hz sound immersion while you rest under a blanket. Gentle somatic release and a slow, quiet return — with space to integrate before you step back into the world.',
     benefits: [
-      'Calms an overstimulated nervous system',
-      'Eases anxiety and quiets mental chatter',
-      'Supports deeper, more restorative sleep',
-      'Releases tension held in the body',
+      'Switches the body out of fight-or-flight',
+      'Releases tension stored in the chest, jaw and shoulders',
+      'Quiets racing thoughts and mental chatter',
+      'Deep, restorative sleep that night',
+      'Practical tools to self-regulate between sessions',
+      'A held, judgment-free space — no experience needed',
     ],
-    gallery: ['assets/img/abundance.webp', 'assets/img/protection.jpg', 'assets/img/love-2.jpg', 'assets/img/oud-incense.jpg', 'assets/img/love.webp'],
-    coverImage: 'assets/img/abundance.webp',
+    journey: [
+      ['Arrive & settle', 'Herbal tea, a warm welcome, and a moment to land. Choose your mat, get comfortable under a blanket.'],
+      ['The breath', 'Hajar guides you through slow, conscious breathwork — long exhales that signal safety to the body.'],
+      ['The sound', 'Crystal bowls, chimes and gong tuned to 432Hz wash over you in waves while you do absolutely nothing.'],
+      ['The release', 'Gentle somatic movement lets the body complete and let go of what it has been holding.'],
+      ['The return', 'A slow, quiet coming-back. Tea, stillness, and a few minutes to integrate before you leave.'],
+    ],
+    gallery: ['assets/img/session/reset-hero.webp', 'assets/img/session/reset-bowl.webp', 'assets/img/session/reset-rest.webp', 'assets/img/session/reset-bowls.webp', 'assets/img/session/reset-detail.webp'],
+    coverImage: 'assets/img/session/reset-hero.webp',
     status: 'published', featured: true,
     cancelPolicy: 'Free cancellation up to 24 hours before the session. Life happens — just let us know.',
     createdAt: Date.now(),
@@ -341,6 +350,7 @@ async function api(req, res, url) {
         location: b.location || '432Hz Studio, Dubai', difficulty: b.difficulty || '',
         description: b.description || '', about: b.about || '', whatToBring: b.whatToBring || '', whatToExpect: b.whatToExpect || '',
         benefits: Array.isArray(b.benefits) ? b.benefits : [], gallery: Array.isArray(b.gallery) ? b.gallery : [],
+        journey: Array.isArray(b.journey) ? b.journey : [],
         coverImage: b.coverImage || '', status: b.status || 'draft', featured: !!b.featured,
         cancelPolicy: b.cancelPolicy || 'Free cancellation up to 24 hours before the session.', createdAt: Date.now(),
       };
@@ -350,7 +360,7 @@ async function api(req, res, url) {
       if (!requireAuth()) return;
       const b = await readBody(req); const i = all.findIndex((x) => x.id === id);
       if (i < 0) return sendJSON(res, 404, { error: 'not found' });
-      ['title', 'category', 'price', 'maxSeats', 'date', 'time', 'duration', 'instructor', 'location', 'difficulty', 'description', 'about', 'whatToBring', 'whatToExpect', 'benefits', 'gallery', 'coverImage', 'status', 'featured', 'cancelPolicy'].forEach((f) => { if (b[f] !== undefined) all[i][f] = f === 'price' || f === 'maxSeats' ? +b[f] : b[f]; });
+      ['title', 'category', 'price', 'maxSeats', 'date', 'time', 'duration', 'instructor', 'location', 'difficulty', 'description', 'about', 'whatToBring', 'whatToExpect', 'benefits', 'gallery', 'journey', 'coverImage', 'status', 'featured', 'cancelPolicy'].forEach((f) => { if (b[f] !== undefined) all[i][f] = f === 'price' || f === 'maxSeats' ? +b[f] : b[f]; });
       if (b.title) all[i].slug = b.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       writeJSON('sessions.json', all); return sendJSON(res, 200, all[i]);
     }
