@@ -261,13 +261,13 @@
 
   const QUOTES=[
     {n:'Reem',t:'I walked in with my shoulders around my ears and walked out feeling like I\'d slept for a week. I booked the next one before I left the building.'},
-    {n:'Yousef',t:'I\'m not a "meditation person". This didn\'t ask me to be. The breathwork alone was worth it — and I slept nine hours that night.'},
+    {n:'Yousef',t:'I\'m not a "meditation person". This didn\'t ask me to be. The guided breathing alone was worth it — and I slept nine hours that night.'},
     {n:'Hana',t:'Hajar holds the room so gently. For the first time in months my mind actually went quiet. I can\'t explain it — you have to feel it.'},
   ];
   const FAQ=[
-    ['I\'ve never done breathwork or sound healing. Is that okay?','Completely. Most guests are first-timers. Hajar guides every step out loud, and there is nothing to get right — your only job is to lie down and breathe.'],
-    ['What should I wear?','Anything you can breathe and lie down in comfortably. Most people come in loungewear. Mats, bolsters, blankets and eye pillows are all provided.'],
-    ['Is it safe if I\'m anxious or going through a hard time?','Yes — the session is specifically designed to down-regulate an anxious system, and everything is invitational. You can simply rest through any part. If you\'re pregnant or have a heart condition, message us first and we\'ll advise.'],
+    ['I\'ve never done guided meditation before. Is that okay?','Completely — no previous experience is required. Most guests are first-timers. Hajar guides every step out loud, and there is nothing to get right.'],
+    ['What should I wear?','Anything you can lie down in comfortably. Most people come in loungewear. Mats, bolsters, blankets, eye pillows and a clear quartz crystal are all provided.'],
+    ['Is it okay if I\'m anxious or going through a hard time?','Yes — the practices are gentle and everything is an invitation; you can simply rest through any part. Many people find this kind of session calming, though individual experiences vary. If you\'re pregnant or have a health condition, message us first and we\'ll advise.'],
     ['What if I need to cancel?','Free cancellation up to 24 hours before the session, straight from your ticket — no questions asked.'],
   ];
 
@@ -298,7 +298,7 @@
       <section class="sd-main"><div class="sd-grid">
         <div class="sd-content">
           <div class="sd-block sd-about rv"><h2>The <span class="it">experience</span></h2>${aboutHTML}</div>
-          ${s.benefits&&s.benefits.length?`<div class="sd-block rv"><h2>How you'll <span class="it">feel</span></h2><ul class="benefits">${s.benefits.map(b=>`<li>${ic.check}<span>${b}</span></li>`).join('')}</ul></div>`:''}
+          ${s.benefits&&s.benefits.length?`<div class="sd-block rv"><h2>What you may <span class="it">experience</span></h2><ul class="benefits">${s.benefits.map(b=>`<li>${ic.check}<span>${b}</span></li>`).join('')}</ul></div>`:''}
           ${journey?`<div class="sd-block rv"><h2>Your 75 minutes, <span class="it">held.</span></h2><div class="journey">${journey.map((st,i)=>`<div class="j-step"><span class="n">Step ${pad(i+1)}</span><h3>${st[0]}</h3><p>${st[1]}</p></div>`).join('')}</div></div>`:''}
           ${gallery.length?`<div class="sd-block rv"><h2>Inside the <span class="it">space</span></h2><div class="gallery">${gallery.slice(0,5).map(g=>`<a href="${g}" target="_blank" rel="noopener"><img src="${g}" alt="" loading="lazy"></a>`).join('')}</div></div>`:''}
           <div class="sd-block foryou rv">
@@ -315,7 +315,7 @@
             <div><h3>${ic.check} What to expect</h3><p>${s.whatToExpect||''}</p></div>
             <div><h3>${ic.check} What to bring</h3><p>${s.whatToBring||''}</p></div>
           </div>
-          <div class="sd-block instructor rv"><div class="av">${(s.instructor||'?')[0]}</div><div><h4>Your guide</h4><b>${s.instructor}</b><p>A dedicated breathwork &amp; sound practitioner, Hajar holds space with rare warmth — guiding each guest gently from a racing mind into deep, embodied calm.</p></div></div>
+          <div class="sd-block instructor rv"><div class="av">${(s.instructor||'?')[0]}</div><div><h4>Your guide</h4><b>${s.instructor}</b><p>A meditation and breath practitioner, Hajar holds space with rare warmth — gently guiding each guest from a racing mind toward calm and presence.</p></div></div>
         </div>
         <aside class="sd-book"><div class="book-card" id="bookCard"></div></aside>
       </div></section>
