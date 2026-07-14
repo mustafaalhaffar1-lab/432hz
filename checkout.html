@@ -75,6 +75,22 @@
     let cart = [];
     try { cart = JSON.parse(localStorage.getItem('hz_cart')) || []; } catch {}
     document.getElementById('year').textContent = new Date().getFullYear();
+    let stripeEnabled = false;
+    const configReady = fetch('/api/stripe/config').then((r) => r.json()).then((c) => { stripeEnabled = !!c.enabled; }).catch(() => {});
+
+    // Returning from Stripe? Verify the payment and confirm the order.
+    const sid = new URLSearchParams(location.search).get('sid');
+    if (sid) {
+      root.innerHTML = '<div class="empty-co"><h1>Confirming your payment…</h1></div>';
+      fetch('/api/stripe/verify?sid=' + encodeURIComponent(sid))
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.ok) { localStorage.removeItem('hz_cart'); history.replaceState(null, '', 'checkout.html'); confirm(d.number); }
+          else { root.innerHTML = '<div class="empty-co"><h1>Payment not completed</h1><p class="sub">Your card was not charged. Your basket is still saved.</p><a class="btn" href="checkout.html"><span>Try again</span></a></div>'; }
+        })
+        .catch(() => { root.innerHTML = '<div class="empty-co"><h1>Could not confirm payment</h1><p class="sub">If you were charged, contact info@432hz.ae with your receipt.</p></div>'; });
+      return;
+    }
 
     const renderEmpty = () => { root.innerHTML = `<div class="empty-co"><h1>Your basket is empty</h1><p class="sub">Begin with an intention.</p><a class="btn" href="collection.html"><span>Shop the rituals</span> <span class="arrow">→</span></a></div>`; };
 
@@ -107,7 +123,7 @@
               </div>
               <div class="field"><label>Order note (optional)</label><textarea name="note" rows="2" placeholder="Anything we should know?"></textarea></div>
               <button class="btn co-submit" type="submit" id="placeBtn"><span>Place order — ${money(t.total)}</span></button>
-              <p class="co-trust">This is a demo store — no payment is taken. Your order is recorded in the admin portal.</p>
+              <p class="co-trust" id="coTrust">This is a demo store — no payment is taken. Your order is recorded in the admin portal.</p>
             </form>
           </div>
           <aside class="summary-box">
@@ -121,15 +137,32 @@
           </aside>
         </div>`;
 
+      configReady.then(() => {
+        if (stripeEnabled) {
+          const tr = $('#coTrust'); if (tr) tr.textContent = 'Secure payment by Stripe — cards, Apple Pay & Google Pay.';
+          const pb = $('#placeBtn'); if (pb) pb.querySelector('span').textContent = 'Pay securely — ' + money(totals().total);
+        }
+      });
       $('#coForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = $('#placeBtn'); btn.disabled = true; btn.querySelector('span').textContent = 'Placing order…';
+        const btn = $('#placeBtn'); btn.disabled = true; btn.querySelector('span').textContent = stripeEnabled ? 'Redirecting to secure payment…' : 'Placing order…';
         const fd = new FormData(e.target);
         const customer = Object.fromEntries(fd.entries());
+        const items = cart.map((i)=>({name:i.name, price: parsePrice(i.price), qty:i.qty}));
         try {
+          if (stripeEnabled) {
+            const r = await fetch('/api/stripe/checkout', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ type:'order', payload:{ customer, items }, cancelUrl: location.origin + '/checkout.html' }),
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'Payment setup failed');
+            location.href = data.url;
+            return;
+          }
           const r = await fetch('/api/orders', {
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ customer, items: cart.map((i)=>({name:i.name, price: parsePrice(i.price), qty:i.qty})) }),
+            body: JSON.stringify({ customer, items }),
           });
           const data = await r.json();
           if (!r.ok) throw new Error(data.error || 'Order failed');

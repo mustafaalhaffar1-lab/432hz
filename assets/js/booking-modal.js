@@ -24,6 +24,8 @@
 
   const modal = $('#modal'), mBody = $('#mBody'), mTitle = $('#mTitle');
   let onCloseCb = null;
+  let stripeEnabled = false;
+  fetch('/api/stripe/config').then((r) => r.json()).then((c) => { stripeEnabled = !!c.enabled; }).catch(() => {});
   const open = () => { modal.classList.add('open'); document.body.style.overflow = 'hidden'; };
   const close = () => { modal.classList.remove('open'); document.body.style.overflow = ''; if (onCloseCb) onCloseCb(); };
   if ($('#mClose')) $('#mClose').addEventListener('click', close);
@@ -45,7 +47,7 @@
       <div id="totalsWrap">${totalsHTML()}</div>
       <div class="pay-methods"><div class="pm">💳 Card</div><div class="pm"> Apple Pay</div><div class="pm">G Pay</div></div>
       <button class="btn" id="payBtn" style="width:100%;justify-content:center"><span>Pay &amp; reserve — <span id="payAmt">${money(s.price)}</span></span></button>
-      <p class="pay-note">Demo checkout — no card is charged. In production this connects to Stripe (cards, Apple Pay &amp; Google Pay).</p>`;
+      <p class="pay-note">${stripeEnabled ? 'Secure payment by Stripe — cards, Apple Pay &amp; Google Pay.' : 'Demo checkout — no card is charged.'}</p>`;
     const rebuild = () => { $('#totalsWrap').innerHTML = totalsHTML(); $('#payAmt').textContent = money(s.price * qty - discount); };
     const sync = () => { $('#qVal').textContent = qty; $('#qMinus').disabled = qty <= 1; $('#qPlus').disabled = qty >= s.remaining; rebuild(); };
     async function reapply() { try { const r = await fetch('/api/discounts/validate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, subtotal: s.price * qty }) }); const d = await r.json(); discount = r.ok ? d.discount : 0; } catch { discount = 0; } }
@@ -61,11 +63,18 @@
     $('#payBtn').onclick = async () => {
       const name = $('#bName').value.trim(), email = $('#bEmail').value.trim(), phone = $('#bPhone').value.trim();
       if (!name || !email || !phone) { alert('Please complete your details.'); return; }
-      const btn = $('#payBtn'); btn.disabled = true; btn.querySelector('span').textContent = 'Reserving…';
+      const btn = $('#payBtn'); btn.disabled = true;
+      btn.querySelector('span').textContent = stripeEnabled ? 'Redirecting to secure payment…' : 'Reserving…';
+      try { localStorage.setItem('hz_last_email', email); } catch {}
       try {
+        if (stripeEnabled) {
+          const r = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'booking', payload: { sessionId: s.id, quantity: qty, discountCode: code, customer: { name, email, phone } }, cancelUrl: location.href.split('?')[0] + (location.search ? location.search : '') }) });
+          const data = await r.json(); if (!r.ok) throw new Error(data.error || 'Payment setup failed');
+          location.href = data.url;
+          return;
+        }
         const r = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: s.id, quantity: qty, discountCode: code, customer: { name, email, phone } }) });
         const data = await r.json(); if (!r.ok) throw new Error(data.error || 'Booking failed');
-        try { localStorage.setItem('hz_last_email', email); } catch {}
         confirmStep(data.booking);
       } catch (err) { btn.disabled = false; btn.querySelector('span').textContent = 'Try again'; alert(err.message); }
     };

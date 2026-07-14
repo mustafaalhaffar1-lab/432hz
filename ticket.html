@@ -58,13 +58,26 @@
   const fmtTime=t=>{let[h,mi]=t.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return `${h}${mi?':'+pad(mi):''} ${ap}`;};
   const durMin=s=>{const m=/(\d+)/.exec(s||'');return m?+m[1]:60;};
   const root=$('#tkRoot');
-  const id=new URLSearchParams(location.search).get('id');
-  if(!id){root.innerHTML='<div class="loading">No ticket specified.</div>';return;}
+  const qs=new URLSearchParams(location.search);
+  const id=qs.get('id'); const sid=qs.get('sid');
 
-  fetch('/api/bookings/'+id).then(r=>r.json()).then(b=>{
+  const loadTicket=(bid)=>fetch('/api/bookings/'+bid).then(r=>r.json()).then(b=>{
     if(b.error){root.innerHTML='<div class="loading">Ticket not found.</div>';return;}
     render(b);
   }).catch(()=>{root.innerHTML='<div class="loading">Could not load ticket.</div>';});
+
+  if(sid){
+    // returning from Stripe — confirm payment, then show the ticket
+    root.innerHTML='<div class="loading">Confirming your payment…</div>';
+    fetch('/api/stripe/verify?sid='+encodeURIComponent(sid)).then(r=>r.json()).then(d=>{
+      if(d.ok&&d.id){history.replaceState(null,'','ticket.html?id='+d.id);loadTicket(d.id);}
+      else{root.innerHTML='<div class="loading">Payment not completed — your card was not charged.<br><br><a class="btn" href="healing.html"><span>Back to sessions</span></a></div>';}
+    }).catch(()=>{root.innerHTML='<div class="loading">Could not confirm payment. If you were charged, contact info@432hz.ae.</div>';});
+  } else if(!id){
+    root.innerHTML='<div class="loading">No ticket specified.</div>';
+  } else {
+    loadTicket(id);
+  }
 
   function icsFor(b){const[y,mo,d]=b.date.split('-').map(Number);const[h,mi]=b.time.split(':').map(Number);const start=`${y}${pad(mo)}${pad(d)}T${pad(h)}${pad(mi)}00`;const e=new Date(y,mo-1,d,h,mi+durMin(b.duration));const end=`${e.getFullYear()}${pad(e.getMonth()+1)}${pad(e.getDate())}T${pad(e.getHours())}${pad(e.getMinutes())}00`;return['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//432Hz//Healing//EN','BEGIN:VEVENT',`UID:${b.id}@432hz.ae`,`DTSTART:${start}`,`DTEND:${end}`,`SUMMARY:${b.sessionTitle}`,`LOCATION:${b.location}`,`DESCRIPTION:432Hz Healing — ${b.number}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');}
   function gcal(b){const[y,mo,d]=b.date.split('-').map(Number);const[h,mi]=b.time.split(':').map(Number);const start=`${y}${pad(mo)}${pad(d)}T${pad(h)}${pad(mi)}00`;const e=new Date(y,mo-1,d,h,mi+durMin(b.duration));const end=`${e.getFullYear()}${pad(e.getMonth()+1)}${pad(e.getDate())}T${pad(e.getHours())}${pad(e.getMinutes())}00`;return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(b.sessionTitle)}&dates=${start}/${end}&location=${encodeURIComponent(b.location)}`;}

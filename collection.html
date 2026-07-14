@@ -44,10 +44,6 @@
     <div class="shop-toolbar">
       <div class="filters" id="filters">
         <button class="filter active" data-cat="all"><span>All</span></button>
-        <button class="filter" data-cat="Intention Kits"><span>Intention Kits</span></button>
-        <button class="filter" data-cat="Luxury Scents"><span>Luxury Scents</span></button>
-        <button class="filter" data-cat="Healing Crystals"><span>Healing Crystals</span></button>
-        <button class="filter" data-cat="Accessories"><span>Accessories</span></button>
       </div>
       <div style="display:flex;align-items:center;gap:1.2rem">
         <span class="shop-count" id="shopCount"></span>
@@ -137,7 +133,7 @@
       countEl.textContent = list.length + (list.length === 1 ? ' piece' : ' pieces');
     };
 
-    document.querySelectorAll('.filter').forEach((f) => f.addEventListener('click', () => {
+    const wireFilters = () => document.querySelectorAll('.filter').forEach((f) => f.addEventListener('click', () => {
       document.querySelectorAll('.filter').forEach((x) => x.classList.remove('active'));
       f.classList.add('active'); cat = f.dataset.cat; draw();
     }));
@@ -145,7 +141,16 @@
 
     fetch('/api/products?status=active')
       .then((r) => r.json())
-      .then((data) => { items = Array.isArray(data) ? data : []; draw(); })
+      .then((data) => {
+        items = Array.isArray(data) ? data : [];
+        // build category chips from what actually exists
+        const cats = [...new Set(items.map((p) => p.category))];
+        const filters = document.getElementById('filters');
+        if (cats.length > 1) filters.innerHTML = '<button class="filter active" data-cat="all"><span>All</span></button>' + cats.map((c) => `<button class="filter" data-cat="${c}"><span>${c}</span></button>`).join('');
+        else filters.style.display = 'none';
+        wireFilters();
+        draw();
+      })
       .catch(() => { grid.innerHTML = '<p style="color:var(--muted)">Could not load the collection. Is the server running?</p>'; });
   })();
 </script>

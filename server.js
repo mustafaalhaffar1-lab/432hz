@@ -3,6 +3,7 @@
 // Static hosting + JSON-backed REST API + admin auth + image upload.
 // =====================================================================
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -46,16 +47,8 @@ function seed() {
     P('The Love Ritual', 'Intention Kits', 386, null, ['love.webp', 'love-2.jpg', 'love-3.jpg', 'love-4.jpg', 'love-5.jpg', 'love-6.jpg', 'love-7.jpg'], 5, 'Limited', 4.8, 76,
       "A ritual set designed to soften your space and open your heart. The Love Ritual is a curated collection for renewal, connection, and balance — each element chosen with intention to clear away heaviness, welcome harmony, and invite love in all its forms. Whether you're nurturing self-love, deepening relationships, or creating a more peaceful atmosphere, this set is your companion. More than a ritual, it's an atmosphere — a way to align your surroundings with the frequency of love.",
       ["Crystals for love & balance: Rose Quartz, Rhodonite, Green Aventurine", "Sacred sage bundle to cleanse and refresh your energy", "Oud incense with a Selenite holder — ancient scent meets purifying stone", "Crystal-infused roller with Amethyst, blended with vanilla, tonka & amber woods", "Light catcher to fill your space with shifting reflections of harmony"]),
-    P('The Ritual Library', 'Intention Kits', 949, 1158, 'abundance.webp', 20, 'Bundle', 5.0, 37, 'All four signature rituals, together. Save 18%.'),
     P('Oud Incense Box', 'Luxury Scents', 80, null, ['oud-incense.jpg', 'oud-incense-2.jpg'], 40, 'New', 4.9, 203,
       "Elevate your space with our handcrafted Oud Incense Box — featuring premium oud chips sourced from the finest regions. Encased in elegant packaging, it delivers a rich, long-lasting aroma perfect for relaxing, meditating, or gifting. A timeless blend of tradition and sophistication."),
-    P('Sacred Oud Sticks', 'Luxury Scents', 95, null, '', 30, '', 4.9, 87, 'An ancient scent of warmth and depth — sacred oud, hand-rolled.'),
-    P('Amethyst Cluster', 'Healing Crystals', 145, null, '', 18, '', 4.9, 61, 'For clarity, calm, and intuition. Natural, one of a kind.'),
-    P('Citrine Abundance Stone', 'Healing Crystals', 120, null, '', 24, '', 5.0, 44, 'The crystal of abundance and optimism.'),
-    P('Selenite Cleansing Wand', 'Healing Crystals', 65, null, '', 33, '', 4.8, 52, 'Cleanse and charge your space and other stones.'),
-    P('Brass Incense Holder', 'Accessories', 55, null, '', 50, '', 4.9, 39, 'A handcrafted brass holder for your daily ritual.'),
-    P('Ceramic Ash Dish', 'Accessories', 45, null, '', 28, '', 4.7, 28, 'A minimal ceramic dish to catch the ash.'),
-    P('Linen Ritual Pouch', 'Accessories', 40, null, '', 61, '', 4.9, 61, 'A linen-wrapped pouch to keep your ritual together.'),
   ];
   writeJSON('products.json', products);
   writeJSON('orders.json', []);
@@ -147,6 +140,107 @@ const MIME = {
 };
 
 // =====================================================================
+// Stripe (zero-dependency REST client) — activates when
+// STRIPE_SECRET_KEY is set in the environment.
+// =====================================================================
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '';
+function stripeCall(method, apiPath, params) {
+  return new Promise((resolve, reject) => {
+    const body = params ? Object.entries(params).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&') : '';
+    const req = https.request({
+      hostname: 'api.stripe.com', path: apiPath, method,
+      headers: {
+        Authorization: 'Bearer ' + STRIPE_KEY,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', (c) => (data += c));
+      res.on('end', () => {
+        try {
+          const j = JSON.parse(data);
+          if (res.statusCode >= 400) reject(new Error(j.error?.message || 'Stripe error ' + res.statusCode));
+          else resolve(j);
+        } catch (e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+const siteOrigin = (req) => {
+  const proto = req.headers['x-forwarded-proto'] || 'http';
+  const host = req.headers['x-forwarded-host'] || req.headers.host || `localhost:${PORT}`;
+  return `${proto.split(',')[0]}://${host.split(',')[0]}`;
+};
+
+// ---------- shared creation logic (used by demo checkout AND Stripe verify) ----------
+function placeOrder(b, opts = {}) {
+  const orders = readJSON('orders.json', []);
+  const settings = readJSON('settings.json', {});
+  const items = Array.isArray(b.items) ? b.items : [];
+  if (!items.length) throw new Error('empty cart');
+  const subtotal = items.reduce((s, i) => s + (+i.price || 0) * (+i.qty || 1), 0);
+  const shipping = subtotal >= (settings.freeShipThreshold || 100) ? 0 : (settings.flatShipping || 25);
+  const meta = readJSON('meta.json', { orderSeq: 1001 });
+  const order = {
+    id: 'o_' + crypto.randomBytes(6).toString('hex'), number: '#' + meta.orderSeq,
+    customer: {
+      name: b.customer?.name || '', email: b.customer?.email || '', phone: b.customer?.phone || '',
+      address: b.customer?.address || '', city: b.customer?.city || '', country: b.customer?.country || 'UAE',
+      note: b.customer?.note || '',
+    },
+    items: items.map((i) => ({ name: i.name, price: +i.price || 0, qty: +i.qty || 1 })),
+    subtotal, shipping, total: subtotal + shipping,
+    status: 'pending', paymentStatus: opts.paymentStatus || 'pending',
+    stripeSessionId: opts.stripeSessionId || '', createdAt: Date.now(),
+  };
+  meta.orderSeq += 1; writeJSON('meta.json', meta);
+  orders.unshift(order); writeJSON('orders.json', orders);
+  const products = readJSON('products.json', []);
+  order.items.forEach((it) => { const p = products.find((x) => x.name === it.name); if (p) p.stock = Math.max(0, p.stock - it.qty); });
+  writeJSON('products.json', products);
+  return order;
+}
+function placeBooking(b, opts = {}) {
+  const bookings = readJSON('bookings.json', []);
+  const all = readJSON('sessions.json', []);
+  const s = all.find((x) => x.id === b.sessionId);
+  if (!s || s.status !== 'published') throw new Error('Session unavailable');
+  const qty = Math.max(1, parseInt(b.quantity) || 1);
+  const booked = bookings.filter((x) => x.sessionId === s.id && x.status === 'confirmed').reduce((n, x) => n + x.quantity, 0);
+  if (!opts.allowOverbook && s.maxSeats - booked < qty) { const e = new Error('Not enough seats'); e.remaining = s.maxSeats - booked; throw e; }
+  const subtotal = s.price * qty;
+  let discount = 0, code = '';
+  if (b.discountCode) {
+    const d = readJSON('discounts.json', []).find((x) => x.active && x.code.toLowerCase() === String(b.discountCode).toLowerCase());
+    if (d) { discount = d.type === 'percent' ? Math.round(subtotal * d.value / 100) : Math.min(subtotal, d.value); code = d.code; }
+  }
+  const meta = readJSON('booking_meta.json', { seq: 1001 });
+  const booking = {
+    id: 'bk_' + crypto.randomBytes(7).toString('hex'), number: 'HS-' + meta.seq,
+    sessionId: s.id, sessionTitle: s.title, category: s.category, date: s.date, time: s.time,
+    duration: s.duration, location: s.location, instructor: s.instructor,
+    customer: { name: b.customer?.name || '', email: b.customer?.email || '', phone: b.customer?.phone || '' },
+    attendees: Array.isArray(b.attendees) ? b.attendees : [], quantity: qty,
+    subtotal, discountCode: code, discount, total: subtotal - discount,
+    paymentStatus: opts.paymentStatus || 'paid', status: 'confirmed', attendance: 'booked',
+    stripeSessionId: opts.stripeSessionId || '', createdAt: Date.now(),
+  };
+  meta.seq += 1; writeJSON('booking_meta.json', meta);
+  bookings.unshift(booking); writeJSON('bookings.json', bookings);
+  return booking;
+}
+// pending Stripe payments (payload parked until payment confirms)
+function readPending() {
+  const list = readJSON('pending_payments.json', []);
+  const fresh = list.filter((p) => Date.now() - p.createdAt < 48 * 3600 * 1000);
+  if (fresh.length !== list.length) writeJSON('pending_payments.json', fresh);
+  return fresh;
+}
+
+// =====================================================================
 // API
 // =====================================================================
 async function api(req, res, url) {
@@ -225,33 +319,10 @@ async function api(req, res, url) {
       if (id) { const o = orders.find((x) => x.id === id); return o ? sendJSON(res, 200, o) : sendJSON(res, 404, { error: 'not found' }); }
       return sendJSON(res, 200, orders);
     }
-    if (method === 'POST') { // public checkout
+    if (method === 'POST') { // public checkout (demo — used when Stripe is not configured)
       const b = await readBody(req);
-      const items = Array.isArray(b.items) ? b.items : [];
-      if (!items.length) return sendJSON(res, 400, { error: 'empty cart' });
-      const subtotal = items.reduce((s, i) => s + (+i.price || 0) * (+i.qty || 1), 0);
-      const shipping = subtotal >= (settings.freeShipThreshold || 100) ? 0 : (settings.flatShipping || 25);
-      const meta = readJSON('meta.json', { orderSeq: 1001 });
-      const order = {
-        id: 'o_' + crypto.randomBytes(6).toString('hex'),
-        number: '#' + meta.orderSeq,
-        customer: {
-          name: b.customer?.name || '', email: b.customer?.email || '',
-          phone: b.customer?.phone || '', address: b.customer?.address || '',
-          city: b.customer?.city || '', country: b.customer?.country || 'UAE',
-          note: b.customer?.note || '',
-        },
-        items: items.map((i) => ({ name: i.name, price: +i.price || 0, qty: +i.qty || 1 })),
-        subtotal, shipping, total: subtotal + shipping,
-        status: 'pending', createdAt: Date.now(),
-      };
-      meta.orderSeq += 1; writeJSON('meta.json', meta);
-      orders.unshift(order); writeJSON('orders.json', orders);
-      // decrement stock
-      const products = readJSON('products.json', []);
-      order.items.forEach((it) => { const p = products.find((x) => x.name === it.name); if (p) p.stock = Math.max(0, p.stock - it.qty); });
-      writeJSON('products.json', products);
-      return sendJSON(res, 201, { ok: true, number: order.number, id: order.id });
+      try { const order = placeOrder(b); return sendJSON(res, 201, { ok: true, number: order.number, id: order.id }); }
+      catch (e) { return sendJSON(res, 400, { error: e.message }); }
     }
     if (method === 'PATCH' && id) {
       if (!requireAuth()) return;
@@ -386,34 +457,10 @@ async function api(req, res, url) {
       const sid = url.searchParams.get('session');
       return sendJSON(res, 200, sid ? bookings.filter((b) => b.sessionId === sid) : bookings);
     }
-    if (method === 'POST' && !id) { // create booking (public checkout)
+    if (method === 'POST' && !id) { // create booking (demo — used when Stripe is not configured)
       const b = await readBody(req);
-      const all = readJSON('sessions.json', []);
-      const s = all.find((x) => x.id === b.sessionId);
-      if (!s || s.status !== 'published') return sendJSON(res, 400, { error: 'Session unavailable' });
-      const qty = Math.max(1, parseInt(b.quantity) || 1);
-      const booked = seatsBooked(s.id, bookings);
-      const remaining = s.maxSeats - booked;
-      if (remaining < qty) return sendJSON(res, 409, { error: 'Not enough seats', remaining });
-      const subtotal = s.price * qty;
-      let discount = 0, code = '';
-      if (b.discountCode) {
-        const d = readJSON('discounts.json', []).find((x) => x.active && x.code.toLowerCase() === String(b.discountCode).toLowerCase());
-        if (d) { discount = d.type === 'percent' ? Math.round(subtotal * d.value / 100) : Math.min(subtotal, d.value); code = d.code; }
-      }
-      const meta = readJSON('booking_meta.json', { seq: 1001 });
-      const booking = {
-        id: 'bk_' + crypto.randomBytes(7).toString('hex'), number: 'HS-' + meta.seq,
-        sessionId: s.id, sessionTitle: s.title, category: s.category, date: s.date, time: s.time,
-        duration: s.duration, location: s.location, instructor: s.instructor,
-        customer: { name: b.customer?.name || '', email: b.customer?.email || '', phone: b.customer?.phone || '' },
-        attendees: Array.isArray(b.attendees) ? b.attendees : [], quantity: qty,
-        subtotal, discountCode: code, discount, total: subtotal - discount,
-        paymentStatus: 'paid', status: 'confirmed', attendance: 'booked', createdAt: Date.now(),
-      };
-      meta.seq += 1; writeJSON('booking_meta.json', meta);
-      bookings.unshift(booking); writeJSON('bookings.json', bookings);
-      return sendJSON(res, 201, { ok: true, id: booking.id, number: booking.number, booking });
+      try { const booking = placeBooking(b); return sendJSON(res, 201, { ok: true, id: booking.id, number: booking.number, booking }); }
+      catch (e) { return sendJSON(res, e.remaining !== undefined ? 409 : 400, { error: e.message, remaining: e.remaining }); }
     }
     if (method === 'POST' && id && action === 'cancel') { // public self-cancel
       const i = bookings.findIndex((x) => x.id === id || x.number === id);
@@ -517,6 +564,102 @@ async function api(req, res, url) {
       today: confirmed.filter((b) => b.date === todayStr).length,
       popular, upcomingSessions: upcoming.length,
     });
+  }
+
+  // ---- Stripe payments ----
+  if (resource === 'stripe') {
+    if (id === 'config' && method === 'GET') return sendJSON(res, 200, { enabled: !!STRIPE_KEY });
+
+    if (id === 'checkout' && method === 'POST') {
+      if (!STRIPE_KEY) return sendJSON(res, 400, { error: 'Stripe is not configured' });
+      const b = await readBody(req);
+      const type = b.type === 'booking' ? 'booking' : 'order';
+      const payload = b.payload || {};
+      // compute the amount + label server-side (never trust client totals)
+      let total = 0, label = '', email = payload.customer?.email || '';
+      if (type === 'order') {
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (!items.length) return sendJSON(res, 400, { error: 'empty cart' });
+        const settings = readJSON('settings.json', {});
+        const subtotal = items.reduce((s, i) => s + (+i.price || 0) * (+i.qty || 1), 0);
+        const shipping = subtotal >= (settings.freeShipThreshold || 100) ? 0 : (settings.flatShipping || 25);
+        total = subtotal + shipping;
+        const n = items.reduce((s, i) => s + (+i.qty || 1), 0);
+        label = `432Hz order — ${n} item${n > 1 ? 's' : ''}${shipping ? ' (incl. shipping)' : ''}`;
+      } else {
+        const all = readJSON('sessions.json', []);
+        const s = all.find((x) => x.id === payload.sessionId);
+        if (!s || s.status !== 'published') return sendJSON(res, 400, { error: 'Session unavailable' });
+        const qty = Math.max(1, parseInt(payload.quantity) || 1);
+        const bookings = readJSON('bookings.json', []);
+        const booked = bookings.filter((x) => x.sessionId === s.id && x.status === 'confirmed').reduce((n2, x) => n2 + x.quantity, 0);
+        if (s.maxSeats - booked < qty) return sendJSON(res, 409, { error: 'Not enough seats', remaining: s.maxSeats - booked });
+        let sub = s.price * qty, discount = 0;
+        if (payload.discountCode) {
+          const d = readJSON('discounts.json', []).find((x) => x.active && x.code.toLowerCase() === String(payload.discountCode).toLowerCase());
+          if (d) discount = d.type === 'percent' ? Math.round(sub * d.value / 100) : Math.min(sub, d.value);
+        }
+        total = sub - discount;
+        label = `${s.title} — ${qty} ticket${qty > 1 ? 's' : ''}`;
+      }
+      if (total <= 0) return sendJSON(res, 400, { error: 'invalid amount' });
+      // park the payload until payment confirms
+      const pending = readPending();
+      const pid = 'pp_' + crypto.randomBytes(8).toString('hex');
+      pending.push({ id: pid, type, payload, createdAt: Date.now() });
+      writeJSON('pending_payments.json', pending);
+      const origin = siteOrigin(req);
+      const successPath = type === 'order' ? '/checkout.html' : '/ticket.html';
+      try {
+        const session = await stripeCall('POST', '/v1/checkout/sessions', {
+          mode: 'payment',
+          'line_items[0][price_data][currency]': 'aed',
+          'line_items[0][price_data][product_data][name]': label,
+          'line_items[0][price_data][unit_amount]': String(Math.round(total * 100)),
+          'line_items[0][quantity]': '1',
+          success_url: origin + successPath + '?sid={CHECKOUT_SESSION_ID}',
+          cancel_url: b.cancelUrl && String(b.cancelUrl).startsWith(origin) ? b.cancelUrl : origin + (type === 'order' ? '/checkout.html' : '/healing.html'),
+          ...(email ? { customer_email: email } : {}),
+          'metadata[pending_id]': pid,
+        });
+        return sendJSON(res, 200, { url: session.url });
+      } catch (e) {
+        writeJSON('pending_payments.json', readPending().filter((p) => p.id !== pid));
+        return sendJSON(res, 502, { error: 'Stripe: ' + e.message });
+      }
+    }
+
+    if (id === 'verify' && method === 'GET') {
+      if (!STRIPE_KEY) return sendJSON(res, 400, { error: 'Stripe is not configured' });
+      const sid = url.searchParams.get('sid');
+      if (!sid || !/^cs_[a-zA-Z0-9_]+$/.test(sid)) return sendJSON(res, 400, { error: 'bad session id' });
+      // idempotency: if this Stripe session already produced a record, return it
+      const oHit = readJSON('orders.json', []).find((o) => o.stripeSessionId === sid);
+      if (oHit) return sendJSON(res, 200, { ok: true, type: 'order', id: oHit.id, number: oHit.number });
+      const bHit = readJSON('bookings.json', []).find((x) => x.stripeSessionId === sid);
+      if (bHit) return sendJSON(res, 200, { ok: true, type: 'booking', id: bHit.id, number: bHit.number, booking: bHit });
+      try {
+        const cs = await stripeCall('GET', '/v1/checkout/sessions/' + encodeURIComponent(sid));
+        if (cs.payment_status !== 'paid') return sendJSON(res, 200, { ok: false, status: cs.payment_status });
+        const pid = cs.metadata && cs.metadata.pending_id;
+        const pending = readPending();
+        const rec = pending.find((p) => p.id === pid);
+        if (!rec) return sendJSON(res, 404, { error: 'payment record not found' });
+        let out;
+        if (rec.type === 'order') {
+          const order = placeOrder(rec.payload, { paymentStatus: 'paid', stripeSessionId: sid });
+          order.status = 'paid';
+          const orders = readJSON('orders.json', []); const i = orders.findIndex((o) => o.id === order.id);
+          if (i >= 0) { orders[i].status = 'paid'; writeJSON('orders.json', orders); }
+          out = { ok: true, type: 'order', id: order.id, number: order.number };
+        } else {
+          const booking = placeBooking(rec.payload, { paymentStatus: 'paid', stripeSessionId: sid, allowOverbook: true });
+          out = { ok: true, type: 'booking', id: booking.id, number: booking.number, booking };
+        }
+        writeJSON('pending_payments.json', readPending().filter((p) => p.id !== pid));
+        return sendJSON(res, 200, out);
+      } catch (e) { return sendJSON(res, 502, { error: 'Stripe: ' + e.message }); }
+    }
   }
 
   return sendJSON(res, 404, { error: 'no route' });

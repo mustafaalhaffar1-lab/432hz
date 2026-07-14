@@ -56,9 +56,22 @@ Either:
 In the Node.js app panel:
 
 1. **Run NPM Install** — there are no dependencies, so this is quick (and harmless).
-2. **Add an environment variable:**
+2. **Add environment variables:**
    - `ADMIN_PASSWORD` = *a strong password of your choice* (this replaces the default `changeme432`).
+   - `STRIPE_SECRET_KEY` = your Stripe secret key — enables real payments (see below). Optional; without it, checkout runs in demo mode.
 3. Click **Start / Restart Application**.
+
+### Stripe payments
+
+1. Create an account at [dashboard.stripe.com](https://dashboard.stripe.com) and activate it for the UAE.
+2. **Developers → API keys** → copy the **Secret key** (`sk_live_…` for real payments, `sk_test_…` to test first).
+3. Add it as the `STRIPE_SECRET_KEY` environment variable in the Hostinger Node.js panel → **Restart Application**.
+4. That's it — shop checkout and session bookings now redirect to **Stripe Checkout** (cards; Apple Pay & Google Pay appear automatically once your domain is verified under Stripe → Settings → Payment methods).
+5. Test with card `4242 4242 4242 4242` (any future date / any CVC) while using an `sk_test_` key, then swap to the live key.
+
+Payments are verified server-side on return (the server confirms with Stripe that the
+session is paid before the order/booking is created), so totals can't be tampered with.
+Never commit the secret key to git — it lives only in the environment variable.
 
 Hostinger sets `PORT` itself and proxies your domain to the app — you don't configure a port.
 

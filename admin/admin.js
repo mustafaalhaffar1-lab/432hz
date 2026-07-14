@@ -471,7 +471,13 @@
         <div class="field"><label>Flat shipping</label><input id="s-flat" type="number" value="${s.flatShipping ?? 25}"></div>
       </div>
       <button class="btn gold" id="saveSettings">Save settings</button>
+      <div id="stripeStatus" style="margin-top:1.4rem;padding-top:1.2rem;border-top:1px solid var(--line);font-size:.88rem;color:var(--ink-soft)">Checking payment gateway…</div>
     </div></div>`;
+    fetch('/api/stripe/config').then((r) => r.json()).then((c) => {
+      $('#stripeStatus').innerHTML = c.enabled
+        ? '<span class="badge b-active">Stripe connected</span> &nbsp;Payments go through Stripe Checkout (cards, Apple Pay, Google Pay).'
+        : '<span class="badge b-draft">Stripe not connected</span> &nbsp;Checkout runs in demo mode. Set the <code>STRIPE_SECRET_KEY</code> environment variable on your host and restart to accept real payments.';
+    }).catch(() => {});
     $('#saveSettings').addEventListener('click', async () => {
       await api('PUT', 'settings', {
         storeName: $('#s-name').value, email: $('#s-email').value, phone: $('#s-phone').value,
