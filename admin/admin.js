@@ -25,13 +25,24 @@
   const toast = (msg) => { const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), 2500); };
 
   // ---------- auth ----------
+  let ME = { role: 'admin', name: '' };
   const showLogin = () => { $('#app').classList.remove('show'); $('#loginWrap').style.display = 'grid'; };
-  const showApp = () => { $('#loginWrap').style.display = 'none'; $('#app').classList.add('show'); route('dashboard'); };
+  const applyRole = () => {
+    const admin = ME.role === 'admin';
+    $$('[data-role]').forEach((el) => { el.style.display = (el.dataset.role === 'admin' ? admin : !admin) ? '' : 'none'; });
+    const brandSmall = $('.sidebar .brand small'); if (brandSmall) brandSmall.textContent = admin ? 'Admin' : 'Instructor';
+  };
+  const showApp = async () => {
+    $('#loginWrap').style.display = 'none'; $('#app').classList.add('show');
+    try { ME = await api('GET', 'me'); } catch { ME = { role: 'admin' }; }
+    applyRole();
+    route(ME.role === 'instructor' ? 'mysessions' : 'dashboard');
+  };
 
   $('#loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     $('#loginErr').textContent = '';
-    try { await api('POST', 'login', { password: $('#pw').value }); $('#pw').value = ''; showApp(); }
+    try { await api('POST', 'login', { email: $('#email').value.trim(), password: $('#pw').value }); $('#pw').value = ''; showApp(); }
     catch (err) { $('#loginErr').textContent = err.message; }
   });
   $('#logoutBtn').addEventListener('click', async (e) => { e.preventDefault(); await api('POST', 'logout'); showLogin(); });
@@ -58,6 +69,8 @@
     sessions: ['Healing Sessions', 'Create sessions and manage seats & waitlists'],
     bookings: ['Session Bookings', 'Tickets, check-in, attendance & refunds'],
     insights: ['Analytics', 'Tickets, revenue, occupancy & attendance'],
+    team: ['Team & Access', 'Create staff and instructor logins'],
+    mysessions: ['My Sessions', 'Your sessions and who has booked'],
     settings: ['Settings', 'Store details and shipping'],
   };
   function route(view) {
@@ -66,11 +79,13 @@
     $('#viewSub').textContent = TITLES[view][1];
     $('#topActions').innerHTML = view === 'products'
       ? '<button class="btn gold" id="addProduct">+ Add product</button>'
-      : view === 'sessions' ? '<button class="btn gold" id="addSession">+ New session</button>' : '';
+      : view === 'sessions' ? '<button class="btn gold" id="addSession">+ New session</button>'
+      : view === 'team' ? '<button class="btn gold" id="addUser">+ Add person</button>' : '';
     if (view === 'products') $('#addProduct').addEventListener('click', () => openProductEditor(null));
     if (view === 'sessions') $('#addSession').addEventListener('click', () => openSessionEditor(null));
+    if (view === 'team') $('#addUser').addEventListener('click', () => openUserEditor(null));
     $('#sidebar').classList.remove('open');
-    ({ dashboard: renderDashboard, products: renderProducts, orders: renderOrders, customers: renderCustomers, sessions: renderSessions, bookings: renderBookings, insights: renderInsights, settings: renderSettings }[view])();
+    ({ dashboard: renderDashboard, products: renderProducts, orders: renderOrders, customers: renderCustomers, sessions: renderSessions, bookings: renderBookings, insights: renderInsights, team: renderTeam, mysessions: renderMySessions, settings: renderSettings }[view])();
   }
   $$('.nav-item').forEach((n) => n.addEventListener('click', () => route(n.dataset.view)));
 
@@ -453,6 +468,93 @@
       <div class="panel"><div class="panel-head"><h2>Most popular sessions</h2></div><div class="table-wrap"><table class="table"><tbody>
         ${s.popular.length ? s.popular.map((p, i) => `<tr><td style="width:40px" class="muted">${i + 1}</td><td><b>${esc(p.title)}</b></td><td class="right">${p.tickets} tickets</td></tr>`).join('') : '<tr><td class="empty">No bookings yet.</td></tr>'}
       </tbody></table></div></div>`;
+  }
+
+  // ================= TEAM & ACCESS (admin) =================
+  async function renderTeam() {
+    const v = $('#view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    const users = await api('GET', 'users');
+    v.innerHTML = `<div class="panel"><div class="table-wrap"><table class="table">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Instructor for</th><th></th></tr></thead>
+      <tbody>${users.length ? users.map(userRow).join('') : '<tr><td colspan="5" class="empty">No staff logins yet. Add an instructor so they can see their own sessions and attendees.</td></tr>'}</tbody></table></div></div>
+      <p class="muted" style="margin-top:1rem;font-size:.85rem">The master admin (your <code>ADMIN_PASSWORD</code>) always has full access and isn't listed here. Instructors only ever see their own sessions and who booked them — never the shop, revenue, or other instructors.</p>`;
+    $$('[data-edit-u]', v).forEach((b) => b.addEventListener('click', () => openUserEditor(users.find((u) => u.id === b.dataset.editU))));
+    $$('[data-del-u]', v).forEach((b) => b.addEventListener('click', async () => { if (confirm('Remove this person\'s access?')) { await api('DELETE', 'users/' + b.dataset.delU); toast('Access removed'); renderTeam(); } }));
+  }
+  function userRow(u) {
+    return `<tr><td><b>${esc(u.name)}</b></td><td class="muted">${esc(u.email)}</td><td><span class="badge b-${u.role === 'admin' ? 'paid' : 'active'}">${u.role}</span></td><td class="muted">${esc(u.instructorName || '—')}</td>
+      <td class="right" style="white-space:nowrap"><button class="btn ghost sm" data-edit-u="${u.id}">Edit</button> <button class="btn danger sm" data-del-u="${u.id}">Remove</button></td></tr>`;
+  }
+  function openUserEditor(u) {
+    const isNew = !u;
+    const body = `
+      <div class="field"><label>Full name</label><input id="u-name" value="${esc(u?.name || '')}" placeholder="Hajar Bourri"></div>
+      <div class="field"><label>Email (their login)</label><input id="u-email" type="email" value="${esc(u?.email || '')}" placeholder="hajar@432hz.ae" ${u ? 'disabled style="opacity:.6"' : ''}></div>
+      <div class="field"><label>Role</label><select id="u-role"><option value="instructor" ${u?.role !== 'admin' ? 'selected' : ''}>Instructor — sees only their own sessions</option><option value="admin" ${u?.role === 'admin' ? 'selected' : ''}>Admin — full access</option></select></div>
+      <div class="field" id="u-instrWrap"><label>Instructor name on sessions</label><input id="u-instr" value="${esc(u?.instructorName || u?.name || '')}" placeholder="e.g. Hajar Bourri"><p class="muted" style="font-size:.8rem;margin-top:.35rem">They'll see every session whose <b>instructor</b> field equals this name. Must match exactly.</p></div>
+      <div class="field"><label>${isNew ? 'Password' : 'New password (leave blank to keep)'}</label><input id="u-pass" type="text" placeholder="${isNew ? 'Set a password to share with them' : '••••••••'}"></div>`;
+    openDrawer(isNew ? 'Add person' : 'Edit person', body, '<button class="btn ghost" id="uCancel">Cancel</button><button class="btn gold" id="uSave">' + (isNew ? 'Create login' : 'Save') + '</button>');
+    const syncRole = () => { $('#u-instrWrap').style.display = $('#u-role').value === 'instructor' ? '' : 'none'; };
+    $('#u-role').addEventListener('change', syncRole); syncRole();
+    $('#uCancel').addEventListener('click', closeDrawer);
+    $('#uSave').addEventListener('click', async () => {
+      const payload = { name: $('#u-name').value.trim(), role: $('#u-role').value, instructorName: $('#u-instr').value.trim() };
+      const pass = $('#u-pass').value; if (pass) payload.password = pass;
+      if (isNew) { payload.email = $('#u-email').value.trim(); if (!payload.email || !pass) return toast('Email and password are required'); }
+      if (!payload.name) return toast('Name is required');
+      try { if (u) await api('PUT', 'users/' + u.id, payload); else await api('POST', 'users', payload); toast(u ? 'Saved' : 'Login created'); closeDrawer(); renderTeam(); }
+      catch (e) { toast(e.message); }
+    });
+  }
+
+  // ================= MY SESSIONS (instructor) =================
+  async function renderMySessions() {
+    const v = $('#view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    const all = await api('GET', 'sessions');
+    const name = (ME.instructorName || ME.name || '').toLowerCase().trim();
+    const mine = all.filter((s) => (s.instructor || '').toLowerCase().trim() === name);
+    if (!mine.length) { v.innerHTML = '<div class="panel"><div class="empty">No sessions are assigned to you yet.<br>Ask an admin to set you as the instructor on a session.</div></div>'; return; }
+    v.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.2rem">${mine.map((s) => `
+      <div class="stat-card" style="cursor:pointer" data-roster="${s.id}">
+        <div class="lbl">${esc(s.category)}</div>
+        <div style="font-family:var(--display);font-size:1.5rem;line-height:1.15;margin:.3rem 0">${esc(s.title)}</div>
+        <div class="muted" style="font-size:.85rem">${fmtD(s.date)} · ${fmtT(s.time)}</div>
+        <div style="margin-top:1rem;font-weight:700">${s.booked}/${s.maxSeats} booked</div>
+        <div style="height:6px;background:var(--bone-deep);border-radius:6px;margin-top:.4rem"><div style="height:100%;width:${Math.round(s.booked / s.maxSeats * 100)}%;background:var(--sage);border-radius:6px"></div></div>
+        <div class="btn ghost sm" style="margin-top:1rem;pointer-events:none">See who's coming →</div>
+      </div>`).join('')}</div>`;
+    $$('[data-roster]', v).forEach((c) => c.addEventListener('click', () => openRoster(mine.find((s) => s.id === c.dataset.roster))));
+  }
+  const statTile = (lbl, num) => `<div class="stat-card"><div class="lbl">${lbl}</div><div class="num">${num}</div></div>`;
+  async function openRoster(s) {
+    const v = $('#view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    const bookings = await api('GET', 'bookings?session=' + s.id);
+    const confirmed = bookings.filter((b) => b.status === 'confirmed');
+    const tickets = confirmed.reduce((n, b) => n + b.quantity, 0);
+    const checkedIn = confirmed.filter((b) => b.attendance === 'checked-in').reduce((n, b) => n + b.quantity, 0);
+    const paidRev = confirmed.filter((b) => b.paymentStatus === 'paid').reduce((n, b) => n + b.total, 0);
+    v.innerHTML = `
+      <button class="btn ghost sm" id="backSess">← My sessions</button>
+      <div style="margin:1rem 0 1.4rem"><h2 style="font-family:var(--display);font-size:1.7rem;font-weight:400">${esc(s.title)}</h2><div class="muted">${fmtD(s.date)} · ${fmtT(s.time)} · ${esc(s.location)}</div></div>
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+        ${statTile('Booked', tickets + ' / ' + s.maxSeats)}
+        ${statTile('Checked in', checkedIn)}
+        ${statTile('Paid', 'AED ' + paidRev.toLocaleString())}
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Who's coming</h2><button class="btn ghost sm" id="rosterCsv">Export CSV</button></div>
+        <div class="table-wrap"><table class="table"><thead><tr><th>Attendee</th><th>Contact</th><th>Tickets</th><th>Payment</th><th>Attendance</th></tr></thead>
+        <tbody>${confirmed.length ? confirmed.map(rosterRow).join('') : '<tr><td colspan="5" class="empty">No bookings yet.</td></tr>'}</tbody></table></div></div>`;
+    $('#backSess').addEventListener('click', () => route('mysessions'));
+    $('#rosterCsv').addEventListener('click', () => csvDownload(s.id));
+    $$('[data-checkin]', v).forEach((b) => b.addEventListener('click', async () => { await api('PATCH', 'bookings/' + b.dataset.checkin, { attendance: b.dataset.next }); openRoster(s); }));
+  }
+  function rosterRow(b) {
+    const inn = b.attendance === 'checked-in';
+    return `<tr><td><b>${esc(b.customer.name)}</b><small class="muted" style="display:block">${b.number}</small></td>
+      <td class="muted">${esc(b.customer.email)}<br>${esc(b.customer.phone)}</td>
+      <td>${b.quantity}</td>
+      <td><span class="badge b-${b.paymentStatus === 'paid' ? 'paid' : (b.paymentStatus === 'refunded' ? 'cancelled' : 'pending')}">${b.paymentStatus}</span></td>
+      <td><button class="btn ${inn ? 'ghost' : 'gold'} sm" data-checkin="${b.id}" data-next="${inn ? 'booked' : 'checked-in'}">${inn ? '✓ Checked in' : 'Check in'}</button></td></tr>`;
   }
 
   // ================= SETTINGS =================

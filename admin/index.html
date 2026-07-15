@@ -17,11 +17,12 @@
 <div class="login-wrap" id="loginWrap">
   <form class="login-card" id="loginForm">
     <div class="brand">432<span class="hz">Hz</span></div>
-    <p>Admin portal · sign in to manage your store</p>
+    <p>Staff portal · sign in</p>
     <div class="login-err" id="loginErr"></div>
-    <input type="password" id="pw" placeholder="Admin password" autocomplete="current-password" required>
+    <input type="email" id="email" placeholder="Email (staff accounts)" autocomplete="username">
+    <input type="password" id="pw" placeholder="Password" autocomplete="current-password" required>
     <button class="btn gold" type="submit" style="width:100%;justify-content:center">Sign in</button>
-    <div class="login-hint">Default password: <strong>changeme432</strong> — set <code>ADMIN_PASSWORD</code> to change.</div>
+    <div class="login-hint">Admins can sign in with just the master password (leave email blank). Instructors sign in with the email &amp; password created for them.</div>
   </form>
 </div>
 
@@ -29,22 +30,27 @@
 <div class="app" id="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand">432<span class="hz" style="font-size:.6em;vertical-align:super;opacity:.7">Hz</span> <small>Admin</small></div>
-    <a class="nav-item active" data-view="dashboard">
+    <a class="nav-item active" data-view="mysessions" data-role="instructor">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> My Sessions</a>
+    <a class="nav-item active" data-view="dashboard" data-role="admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> Dashboard</a>
-    <a class="nav-item" data-view="products">
+    <a class="nav-item" data-view="products" data-role="admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8 12 3l9 5-9 5-9-5Z"/><path d="m3 8 0 8 9 5 9-5V8"/></svg> Products</a>
-    <a class="nav-item" data-view="orders">
+    <a class="nav-item" data-view="orders" data-role="admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 2h9l4 4v16H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg> Orders</a>
-    <a class="nav-item" data-view="customers">
+    <a class="nav-item" data-view="customers" data-role="admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.5a3 3 0 0 1 0 5.5M17.5 20a5.5 5.5 0 0 0-3-4.9"/></svg> Customers</a>
-    <div style="font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,241,232,.4);padding:1.2rem 1rem .5rem">Healing sessions</div>
-    <a class="nav-item" data-view="sessions">
+    <div class="nav-label" data-role="admin" style="font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,241,232,.4);padding:1.2rem 1rem .5rem">Healing sessions</div>
+    <a class="nav-item" data-view="sessions" data-role="admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Sessions</a>
-    <a class="nav-item" data-view="bookings">
+    <a class="nav-item" data-view="bookings" data-role="admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8a2 2 0 0 0 2-2V5h12v1a2 2 0 0 0 4 0M4 8v8a2 2 0 0 0 2 2v1h12v-1a2 2 0 0 0 2-2V8M9 5v14"/></svg> Bookings</a>
-    <a class="nav-item" data-view="insights">
+    <a class="nav-item" data-view="insights" data-role="admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg> Analytics</a>
-    <a class="nav-item" data-view="settings">
+    <div class="nav-label" data-role="admin" style="font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,241,232,.4);padding:1.2rem 1rem .5rem">Team</div>
+    <a class="nav-item" data-view="team" data-role="admin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><circle cx="17.5" cy="9" r="2.2"/><path d="M15 20a5 5 0 0 1 6.5-4"/></svg> Team &amp; Access</a>
+    <a class="nav-item" data-view="settings" data-role="admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6c.1-.3.1-.7.1-1Z"/></svg> Settings</a>
     <div class="spacer"></div>
     <div class="side-foot">

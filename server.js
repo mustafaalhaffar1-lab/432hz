@@ -101,23 +101,32 @@ function seed() {
     { code: 'EARLYBIRD', type: 'percent', value: 15, active: true, note: 'Early-bird 15% off' },
   ]);
   writeJSON('booking_meta.json', { seq: 1001 });
+  writeJSON('users.json', []);
 
   console.log('Seeded data/');
 }
 seed();
 
 // ---------- auth (in-memory sessions) ----------
-const sessions = new Map(); // token -> expiry
+const sessions = new Map(); // token -> { exp, role, userId, name, instructorName }
 const newToken = () => crypto.randomBytes(24).toString('hex');
 const parseCookies = (req) => Object.fromEntries(
   (req.headers.cookie || '').split(';').map((c) => c.trim().split('=').map(decodeURIComponent)).filter((x) => x[0])
 );
+// returns the session object (truthy) or null
 const isAuthed = (req) => {
   const t = parseCookies(req).hz_admin;
-  if (!t || !sessions.has(t)) return false;
-  if (sessions.get(t) < Date.now()) { sessions.delete(t); return false; }
-  return true;
+  if (!t || !sessions.has(t)) return null;
+  const s = sessions.get(t);
+  if (s.exp < Date.now()) { sessions.delete(t); return null; }
+  return s;
 };
+const isAdmin = (req) => { const s = isAuthed(req); return !!s && s.role === 'admin'; };
+
+// ---------- password hashing (scrypt) ----------
+const hashPw = (pw) => { const salt = crypto.randomBytes(16).toString('hex'); const hash = crypto.scryptSync(String(pw), salt, 64).toString('hex'); return { salt, hash }; };
+const verifyPw = (pw, salt, hash) => { try { const h = crypto.scryptSync(String(pw), salt, 64); return crypto.timingSafeEqual(h, Buffer.from(hash, 'hex')); } catch { return false; } };
+const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, instructorName: u.instructorName || '', createdAt: u.createdAt });
 
 // ---------- http helpers ----------
 const sendJSON = (res, status, obj, headers = {}) => {
@@ -249,15 +258,26 @@ async function api(req, res, url) {
   const resource = seg[1];
   const id = seg[2];
   const method = req.method;
-  const requireAuth = () => { if (!isAuthed(req)) { sendJSON(res, 401, { error: 'unauthorized' }); return false; } return true; };
+  const me = isAuthed(req);
+  const requireAuth = () => { if (!me) { sendJSON(res, 401, { error: 'unauthorized' }); return false; } return true; };
+  const requireAdmin = () => { if (!me) { sendJSON(res, 401, { error: 'unauthorized' }); return false; } if (me.role !== 'admin') { sendJSON(res, 403, { error: 'Admins only' }); return false; } return true; };
 
   // ---- auth ----
   if (resource === 'login' && method === 'POST') {
-    const { password } = await readBody(req);
-    if (password !== ADMIN_PASSWORD) return sendJSON(res, 401, { error: 'Incorrect password' });
+    const b = await readBody(req);
+    const email = (b.email || '').trim().toLowerCase();
+    let sess = null;
+    if (email) {
+      const u = readJSON('users.json', []).find((x) => x.email.toLowerCase() === email);
+      if (!u || !verifyPw(b.password, u.salt, u.hash)) return sendJSON(res, 401, { error: 'Incorrect email or password' });
+      sess = { role: u.role, userId: u.id, name: u.name, instructorName: u.instructorName || u.name };
+    } else {
+      if (b.password !== ADMIN_PASSWORD) return sendJSON(res, 401, { error: 'Incorrect password' });
+      sess = { role: 'admin', userId: 'master', name: 'Administrator', instructorName: '' };
+    }
     const token = newToken();
-    sessions.set(token, Date.now() + 1000 * 60 * 60 * 12); // 12h
-    return sendJSON(res, 200, { ok: true }, {
+    sessions.set(token, { exp: Date.now() + 1000 * 60 * 60 * 12, ...sess });
+    return sendJSON(res, 200, { ok: true, role: sess.role, name: sess.name }, {
       'Set-Cookie': `hz_admin=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=43200`,
     });
   }
@@ -265,7 +285,38 @@ async function api(req, res, url) {
     const t = parseCookies(req).hz_admin; if (t) sessions.delete(t);
     return sendJSON(res, 200, { ok: true }, { 'Set-Cookie': 'hz_admin=; Path=/; Max-Age=0' });
   }
-  if (resource === 'me') return sendJSON(res, 200, { authed: isAuthed(req) });
+  if (resource === 'me') return sendJSON(res, 200, me ? { authed: true, role: me.role, name: me.name, instructorName: me.instructorName || '' } : { authed: false });
+
+  // ---- users (admin) ----
+  if (resource === 'users') {
+    const users = readJSON('users.json', []);
+    if (method === 'GET') { if (!requireAdmin()) return; return sendJSON(res, 200, users.map(publicUser)); }
+    if (method === 'POST') {
+      if (!requireAdmin()) return;
+      const b = await readBody(req);
+      const email = (b.email || '').trim().toLowerCase();
+      if (!b.name || !email || !b.password) return sendJSON(res, 400, { error: 'Name, email and password are required' });
+      if (users.find((u) => u.email.toLowerCase() === email)) return sendJSON(res, 409, { error: 'A user with that email already exists' });
+      const { salt, hash } = hashPw(b.password);
+      const role = b.role === 'instructor' ? 'instructor' : 'admin';
+      const u = { id: 'u_' + crypto.randomBytes(5).toString('hex'), name: b.name.trim(), email, role, instructorName: role === 'instructor' ? (b.instructorName || b.name).trim() : '', salt, hash, createdAt: Date.now() };
+      users.push(u); writeJSON('users.json', users);
+      return sendJSON(res, 201, publicUser(u));
+    }
+    if (method === 'PUT' && id) {
+      if (!requireAdmin()) return;
+      const b = await readBody(req); const i = users.findIndex((u) => u.id === id);
+      if (i < 0) return sendJSON(res, 404, { error: 'not found' });
+      if (b.name !== undefined) users[i].name = b.name.trim();
+      if (b.role !== undefined) users[i].role = b.role === 'instructor' ? 'instructor' : 'admin';
+      if (b.instructorName !== undefined) users[i].instructorName = b.instructorName.trim();
+      if (users[i].role !== 'instructor') users[i].instructorName = '';
+      if (b.password) { const { salt, hash } = hashPw(b.password); users[i].salt = salt; users[i].hash = hash; }
+      writeJSON('users.json', users);
+      return sendJSON(res, 200, publicUser(users[i]));
+    }
+    if (method === 'DELETE' && id) { if (!requireAdmin()) return; writeJSON('users.json', users.filter((u) => u.id !== id)); return sendJSON(res, 200, { ok: true }); }
+  }
 
   // ---- products ----
   if (resource === 'products') {
@@ -279,7 +330,7 @@ async function api(req, res, url) {
       return p ? sendJSON(res, 200, p) : sendJSON(res, 404, { error: 'not found' });
     }
     if (method === 'POST') {
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       const b = await readBody(req);
       const p = {
         id: 'p_' + crypto.randomBytes(5).toString('hex'),
@@ -293,7 +344,7 @@ async function api(req, res, url) {
       return sendJSON(res, 201, p);
     }
     if (method === 'PUT' && id) {
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       const b = await readBody(req);
       const i = products.findIndex((x) => x.id === id);
       if (i < 0) return sendJSON(res, 404, { error: 'not found' });
@@ -304,7 +355,7 @@ async function api(req, res, url) {
       return sendJSON(res, 200, products[i]);
     }
     if (method === 'DELETE' && id) {
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       const next = products.filter((x) => x.id !== id);
       writeJSON('products.json', next);
       return sendJSON(res, 200, { ok: true });
@@ -316,7 +367,7 @@ async function api(req, res, url) {
     const orders = readJSON('orders.json', []);
     const settings = readJSON('settings.json', {});
     if (method === 'GET') {
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       if (id) { const o = orders.find((x) => x.id === id); return o ? sendJSON(res, 200, o) : sendJSON(res, 404, { error: 'not found' }); }
       return sendJSON(res, 200, orders);
     }
@@ -326,7 +377,7 @@ async function api(req, res, url) {
       catch (e) { return sendJSON(res, 400, { error: e.message }); }
     }
     if (method === 'PATCH' && id) {
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       const b = await readBody(req);
       const i = orders.findIndex((x) => x.id === id);
       if (i < 0) return sendJSON(res, 404, { error: 'not found' });
@@ -338,7 +389,7 @@ async function api(req, res, url) {
 
   // ---- upload (base64) ----
   if (resource === 'upload' && method === 'POST') {
-    if (!requireAuth()) return;
+    if (!requireAdmin()) return;
     const { filename, dataUrl } = await readBody(req);
     const m = /^data:(image\/[a-z+]+);base64,(.+)$/i.exec(dataUrl || '');
     if (!m) return sendJSON(res, 400, { error: 'invalid image' });
@@ -353,7 +404,7 @@ async function api(req, res, url) {
   if (resource === 'settings') {
     if (method === 'GET') return sendJSON(res, 200, readJSON('settings.json', {}));
     if (method === 'PUT') {
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       const b = await readBody(req);
       const s = { ...readJSON('settings.json', {}), ...b };
       writeJSON('settings.json', s);
@@ -363,7 +414,7 @@ async function api(req, res, url) {
 
   // ---- stats (dashboard) ----
   if (resource === 'stats' && method === 'GET') {
-    if (!requireAuth()) return;
+    if (!requireAdmin()) return;
     const orders = readJSON('orders.json', []);
     const products = readJSON('products.json', []);
     const revenue = orders.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0);
@@ -393,9 +444,10 @@ async function api(req, res, url) {
       list = list.map((s) => withSeats(s, bookings)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
       return sendJSON(res, 200, list);
     }
-    if (method === 'GET' && id && action === 'attendees') { // CSV export (admin)
+    if (method === 'GET' && id && action === 'attendees') { // CSV export (admin or owning instructor)
       if (!requireAuth()) return;
       const s = all.find((x) => x.id === id);
+      if (me.role === 'instructor' && (!s || s.instructor.toLowerCase().trim() !== (me.instructorName || '').toLowerCase().trim())) return sendJSON(res, 403, { error: 'Not your session' });
       const rows = [['Booking', 'Name', 'Email', 'Phone', 'Tickets', 'Payment', 'Attendance', 'Booked at']];
       bookings.filter((b) => b.sessionId === id && b.status === 'confirmed').forEach((b) => rows.push([b.number, b.customer.name, b.customer.email, b.customer.phone, b.quantity, b.paymentStatus, b.attendance, new Date(b.createdAt).toISOString()]));
       const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -406,13 +458,13 @@ async function api(req, res, url) {
       return s ? sendJSON(res, 200, withSeats(s, bookings)) : sendJSON(res, 404, { error: 'not found' });
     }
     if (method === 'POST' && id && action === 'duplicate') {
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       const src = all.find((x) => x.id === id); if (!src) return sendJSON(res, 404, { error: 'not found' });
       const copy = { ...src, id: 's_' + crypto.randomBytes(5).toString('hex'), title: src.title + ' (copy)', status: 'draft', featured: false, createdAt: Date.now() };
       all.unshift(copy); writeJSON('sessions.json', all); return sendJSON(res, 201, copy);
     }
     if (method === 'POST') {
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       const b = await readBody(req);
       const s = {
         id: 's_' + crypto.randomBytes(5).toString('hex'),
@@ -429,7 +481,7 @@ async function api(req, res, url) {
       all.unshift(s); writeJSON('sessions.json', all); return sendJSON(res, 201, s);
     }
     if (method === 'PUT' && id) {
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       const b = await readBody(req); const i = all.findIndex((x) => x.id === id);
       if (i < 0) return sendJSON(res, 404, { error: 'not found' });
       ['title', 'category', 'price', 'maxSeats', 'date', 'time', 'duration', 'instructor', 'location', 'difficulty', 'description', 'about', 'whatToBring', 'whatToExpect', 'benefits', 'gallery', 'journey', 'coverImage', 'status', 'featured', 'cancelPolicy'].forEach((f) => { if (b[f] !== undefined) all[i][f] = f === 'price' || f === 'maxSeats' ? +b[f] : b[f]; });
@@ -437,7 +489,7 @@ async function api(req, res, url) {
       writeJSON('sessions.json', all); return sendJSON(res, 200, all[i]);
     }
     if (method === 'DELETE' && id) {
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       writeJSON('sessions.json', all.filter((x) => x.id !== id)); return sendJSON(res, 200, { ok: true });
     }
   }
@@ -454,9 +506,14 @@ async function api(req, res, url) {
         const em = url.searchParams.get('email').toLowerCase();
         return sendJSON(res, 200, bookings.filter((b) => (b.customer.email || '').toLowerCase() === em));
       }
-      if (!requireAuth()) return; // admin list
+      if (!requireAuth()) return; // staff list
       const sid = url.searchParams.get('session');
-      return sendJSON(res, 200, sid ? bookings.filter((b) => b.sessionId === sid) : bookings);
+      let list = sid ? bookings.filter((b) => b.sessionId === sid) : bookings;
+      if (me.role === 'instructor') {
+        const mine = new Set(readJSON('sessions.json', []).filter((s) => s.instructor.toLowerCase().trim() === (me.instructorName || '').toLowerCase().trim()).map((s) => s.id));
+        list = list.filter((b) => mine.has(b.sessionId));
+      }
+      return sendJSON(res, 200, list);
     }
     if (method === 'POST' && !id) { // create booking (demo — used when Stripe is not configured)
       const b = await readBody(req);
@@ -469,11 +526,18 @@ async function api(req, res, url) {
       bookings[i].status = 'cancelled'; bookings[i].paymentStatus = 'refunded';
       writeJSON('bookings.json', bookings); return sendJSON(res, 200, { ok: true });
     }
-    if (method === 'PATCH' && id) { // admin update
+    if (method === 'PATCH' && id) { // staff update
       if (!requireAuth()) return;
       const b = await readBody(req); const i = bookings.findIndex((x) => x.id === id);
       if (i < 0) return sendJSON(res, 404, { error: 'not found' });
-      ['status', 'paymentStatus', 'attendance'].forEach((f) => { if (b[f] !== undefined) bookings[i][f] = b[f]; });
+      if (me.role === 'instructor') {
+        // instructors may only check attendees in/out on their own sessions
+        const s = readJSON('sessions.json', []).find((x) => x.id === bookings[i].sessionId);
+        if (!s || s.instructor.toLowerCase().trim() !== (me.instructorName || '').toLowerCase().trim()) return sendJSON(res, 403, { error: 'Not your session' });
+        if (b.attendance !== undefined) bookings[i].attendance = b.attendance;
+      } else {
+        ['status', 'paymentStatus', 'attendance'].forEach((f) => { if (b[f] !== undefined) bookings[i][f] = b[f]; });
+      }
       writeJSON('bookings.json', bookings); return sendJSON(res, 200, bookings[i]);
     }
   }
@@ -486,10 +550,10 @@ async function api(req, res, url) {
       const entry = { id: 'wl_' + crypto.randomBytes(5).toString('hex'), sessionId: b.sessionId, name: b.name || '', email: b.email || '', phone: b.phone || '', quantity: Math.max(1, parseInt(b.quantity) || 1), createdAt: Date.now() };
       wl.push(entry); writeJSON('waitlist.json', wl); return sendJSON(res, 201, { ok: true });
     }
-    if (method === 'GET') { if (!requireAuth()) return; return sendJSON(res, 200, wl); }
-    if (method === 'DELETE' && id) { if (!requireAuth()) return; writeJSON('waitlist.json', wl.filter((x) => x.id !== id)); return sendJSON(res, 200, { ok: true }); }
+    if (method === 'GET') { if (!requireAdmin()) return; return sendJSON(res, 200, wl); }
+    if (method === 'DELETE' && id) { if (!requireAdmin()) return; writeJSON('waitlist.json', wl.filter((x) => x.id !== id)); return sendJSON(res, 200, { ok: true }); }
     if (method === 'POST' && id && action === 'promote') { // move to a booking
-      if (!requireAuth()) return;
+      if (!requireAdmin()) return;
       const entry = wl.find((x) => x.id === id); if (!entry) return sendJSON(res, 404, { error: 'not found' });
       const all = readJSON('sessions.json', []); const bookings = readJSON('bookings.json', []);
       const s = all.find((x) => x.id === entry.sessionId); if (!s) return sendJSON(res, 400, { error: 'session gone' });
@@ -517,8 +581,8 @@ async function api(req, res, url) {
       reviews.unshift({ id: 'rv_' + crypto.randomBytes(5).toString('hex'), sessionId: b.sessionId || '', name: b.name || 'Anonymous', rating: Math.min(5, Math.max(1, +b.rating || 5)), text: b.text || '', approved: false, createdAt: Date.now() });
       writeJSON('session_reviews.json', reviews); return sendJSON(res, 201, { ok: true });
     }
-    if (method === 'PATCH' && id) { if (!requireAuth()) return; const i = reviews.findIndex((r) => r.id === id); if (i < 0) return sendJSON(res, 404, {}); reviews[i].approved = !!(await readBody(req)).approved; writeJSON('session_reviews.json', reviews); return sendJSON(res, 200, reviews[i]); }
-    if (method === 'DELETE' && id) { if (!requireAuth()) return; writeJSON('session_reviews.json', reviews.filter((r) => r.id !== id)); return sendJSON(res, 200, { ok: true }); }
+    if (method === 'PATCH' && id) { if (!requireAdmin()) return; const i = reviews.findIndex((r) => r.id === id); if (i < 0) return sendJSON(res, 404, {}); reviews[i].approved = !!(await readBody(req)).approved; writeJSON('session_reviews.json', reviews); return sendJSON(res, 200, reviews[i]); }
+    if (method === 'DELETE' && id) { if (!requireAdmin()) return; writeJSON('session_reviews.json', reviews.filter((r) => r.id !== id)); return sendJSON(res, 200, { ok: true }); }
   }
 
   // ---- discounts ----
@@ -531,14 +595,14 @@ async function api(req, res, url) {
       const sub = +b.subtotal || 0;
       return sendJSON(res, 200, { code: d.code, discount: d.type === 'percent' ? Math.round(sub * d.value / 100) : Math.min(sub, d.value), note: d.note });
     }
-    if (method === 'GET') { if (!requireAuth()) return; return sendJSON(res, 200, discounts); }
-    if (method === 'POST') { if (!requireAuth()) return; const b = await readBody(req); discounts.push({ code: (b.code || '').toUpperCase(), type: b.type || 'percent', value: +b.value || 0, active: b.active !== false, note: b.note || '' }); writeJSON('discounts.json', discounts); return sendJSON(res, 201, { ok: true }); }
-    if (method === 'DELETE' && id) { if (!requireAuth()) return; writeJSON('discounts.json', discounts.filter((d) => d.code !== id)); return sendJSON(res, 200, { ok: true }); }
+    if (method === 'GET') { if (!requireAdmin()) return; return sendJSON(res, 200, discounts); }
+    if (method === 'POST') { if (!requireAdmin()) return; const b = await readBody(req); discounts.push({ code: (b.code || '').toUpperCase(), type: b.type || 'percent', value: +b.value || 0, active: b.active !== false, note: b.note || '' }); writeJSON('discounts.json', discounts); return sendJSON(res, 201, { ok: true }); }
+    if (method === 'DELETE' && id) { if (!requireAdmin()) return; writeJSON('discounts.json', discounts.filter((d) => d.code !== id)); return sendJSON(res, 200, { ok: true }); }
   }
 
   // ---- booking analytics ----
   if (resource === 'booking-stats' && method === 'GET') {
-    if (!requireAuth()) return;
+    if (!requireAdmin()) return;
     const bookings = readJSON('bookings.json', []);
     const all = readJSON('sessions.json', []);
     const confirmed = bookings.filter((b) => b.status === 'confirmed');
