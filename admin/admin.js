@@ -80,10 +80,12 @@
     $('#topActions').innerHTML = view === 'products'
       ? '<button class="btn gold" id="addProduct">+ Add product</button>'
       : view === 'sessions' ? '<button class="btn gold" id="addSession">+ New session</button>'
-      : view === 'team' ? '<button class="btn gold" id="addUser">+ Add person</button>' : '';
+      : view === 'team' ? '<button class="btn gold" id="addUser">+ Add person</button>'
+      : view === 'mysessions' ? '<button class="btn gold" id="addMySession">+ New session</button>' : '';
     if (view === 'products') $('#addProduct').addEventListener('click', () => openProductEditor(null));
     if (view === 'sessions') $('#addSession').addEventListener('click', () => openSessionEditor(null));
     if (view === 'team') $('#addUser').addEventListener('click', () => openUserEditor(null));
+    if (view === 'mysessions') $('#addMySession').addEventListener('click', () => openSessionEditor(null));
     $('#sidebar').classList.remove('open');
     ({ dashboard: renderDashboard, products: renderProducts, orders: renderOrders, customers: renderCustomers, sessions: renderSessions, bookings: renderBookings, insights: renderInsights, team: renderTeam, mysessions: renderMySessions, settings: renderSettings }[view])();
   }
@@ -358,12 +360,12 @@
         <input type="file" id="sFileInput" accept="image/*" multiple hidden>
         <div class="dropzone" id="sDropzone">＋ Upload session photos (JPG, PNG, WEBP)</div>
       </div>
-      <div class="field-row"><div class="field"><label>Category</label><select id="s-cat">${CATS.map((c) => `<option ${s?.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div><div class="field"><label>Instructor</label><input id="s-inst" value="${esc(s?.instructor || '')}"></div></div>
+      <div class="field-row"><div class="field"><label>Category</label><select id="s-cat">${CATS.map((c) => `<option ${s?.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div><div class="field"><label>Instructor</label><input id="s-inst" value="${esc(ME.role === 'instructor' ? (ME.instructorName || ME.name) : (s?.instructor || ''))}" ${ME.role === 'instructor' ? 'disabled style="opacity:.6"' : ''}></div></div>
       <div class="field-row-3"><div class="field"><label>Date</label><input id="s-date" type="date" value="${s?.date || ''}"></div><div class="field"><label>Time</label><input id="s-time" type="time" value="${s?.time || ''}"></div><div class="field"><label>Duration</label><input id="s-dur" value="${esc(s?.duration || '')}" placeholder="60 min"></div></div>
       <div class="field-row-3"><div class="field"><label>Price (AED)</label><input id="s-price" type="number" value="${s?.price ?? ''}"></div><div class="field"><label>Max seats</label><input id="s-seats" type="number" value="${s?.maxSeats ?? ''}"></div><div class="field"><label>Difficulty</label><input id="s-diff" value="${esc(s?.difficulty || '')}" placeholder="All levels"></div></div>
       <div class="field"><label>Location</label><input id="s-loc" value="${esc(s?.location || '432Hz Studio, Dubai')}"></div>
       <div class="field-row"><div class="field"><label>What to bring</label><textarea id="s-bring" rows="2">${esc(s?.whatToBring || '')}</textarea></div><div class="field"><label>What to expect</label><textarea id="s-expect" rows="2">${esc(s?.whatToExpect || '')}</textarea></div></div>
-      <div class="field-row"><div class="field"><label>Status</label><select id="s-status"><option value="published" ${s?.status !== 'draft' ? 'selected' : ''}>Published</option><option value="draft" ${s?.status === 'draft' ? 'selected' : ''}>Draft</option></select></div><div class="field"><label>Featured</label><select id="s-feat"><option value="no" ${!s?.featured ? 'selected' : ''}>No</option><option value="yes" ${s?.featured ? 'selected' : ''}>Yes</option></select></div></div>`;
+      <div class="field-row"><div class="field"><label>Status</label><select id="s-status"><option value="published" ${s?.status !== 'draft' ? 'selected' : ''}>Published (live &amp; bookable)</option><option value="draft" ${s?.status === 'draft' ? 'selected' : ''}>Draft (hidden)</option></select></div>${ME.role === 'admin' ? `<div class="field"><label>Featured</label><select id="s-feat"><option value="no" ${!s?.featured ? 'selected' : ''}>No</option><option value="yes" ${s?.featured ? 'selected' : ''}>Yes</option></select></div>` : '<div class="field"></div>'}</div>`;
     openDrawer(isNew ? 'New session' : 'Edit session', body, '<button class="btn ghost" id="sCancel">Cancel</button><button class="btn gold" id="sSave">' + (isNew ? 'Create' : 'Save') + '</button>');
     renderSessImages();
     $('#sDropzone').addEventListener('click', () => $('#sFileInput').click());
@@ -375,10 +377,10 @@
     });
     $('#sCancel').addEventListener('click', closeDrawer);
     $('#sSave').addEventListener('click', async () => {
-      const payload = { title: $('#s-title').value.trim(), description: $('#s-desc').value.trim(), about: $('#s-about').value.trim(), category: $('#s-cat').value, instructor: $('#s-inst').value.trim(), date: $('#s-date').value, time: $('#s-time').value, duration: $('#s-dur').value.trim(), price: +$('#s-price').value || 0, maxSeats: +$('#s-seats').value || 0, difficulty: $('#s-diff').value.trim(), location: $('#s-loc').value.trim(), whatToBring: $('#s-bring').value.trim(), whatToExpect: $('#s-expect').value.trim(), benefits: $('#s-benefits').value.split('\n').map((x) => x.trim()).filter(Boolean), gallery: sessImages, coverImage: sessImages[0] || '', status: $('#s-status').value, featured: $('#s-feat').value === 'yes' };
+      const payload = { title: $('#s-title').value.trim(), description: $('#s-desc').value.trim(), about: $('#s-about').value.trim(), category: $('#s-cat').value, instructor: $('#s-inst').value.trim(), date: $('#s-date').value, time: $('#s-time').value, duration: $('#s-dur').value.trim(), price: +$('#s-price').value || 0, maxSeats: +$('#s-seats').value || 0, difficulty: $('#s-diff').value.trim(), location: $('#s-loc').value.trim(), whatToBring: $('#s-bring').value.trim(), whatToExpect: $('#s-expect').value.trim(), benefits: $('#s-benefits').value.split('\n').map((x) => x.trim()).filter(Boolean), gallery: sessImages, coverImage: sessImages[0] || '', status: $('#s-status').value, featured: $('#s-feat') ? $('#s-feat').value === 'yes' : false };
       if (!payload.title) return toast('Title required');
       if (s) await api('PUT', 'sessions/' + s.id, payload); else await api('POST', 'sessions', payload);
-      toast(s ? 'Saved' : 'Session created'); closeDrawer(); renderSessions();
+      toast(s ? 'Saved' : 'Session created'); closeDrawer(); (ME.role === 'instructor' ? renderMySessions : renderSessions)();
     });
   }
   function renderSessImages() {
@@ -508,22 +510,44 @@
   }
 
   // ================= MY SESSIONS (instructor) =================
+  let mySessCache = [];
   async function renderMySessions() {
     const v = $('#view'); v.innerHTML = '<div class="empty">Loading…</div>';
     const all = await api('GET', 'sessions');
     const name = (ME.instructorName || ME.name || '').toLowerCase().trim();
-    const mine = all.filter((s) => (s.instructor || '').toLowerCase().trim() === name);
-    if (!mine.length) { v.innerHTML = '<div class="panel"><div class="empty">No sessions are assigned to you yet.<br>Ask an admin to set you as the instructor on a session.</div></div>'; return; }
-    v.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.2rem">${mine.map((s) => `
-      <div class="stat-card" style="cursor:pointer" data-roster="${s.id}">
-        <div class="lbl">${esc(s.category)}</div>
-        <div style="font-family:var(--display);font-size:1.5rem;line-height:1.15;margin:.3rem 0">${esc(s.title)}</div>
-        <div class="muted" style="font-size:.85rem">${fmtD(s.date)} · ${fmtT(s.time)}</div>
+    mySessCache = all.filter((s) => (s.instructor || '').toLowerCase().trim() === name);
+    if (!mySessCache.length) {
+      v.innerHTML = '<div class="panel"><div class="empty">You don\'t have any sessions yet.<br><button class="btn gold" id="firstSession" style="margin-top:1.2rem">+ Create your first session</button></div></div>';
+      $('#firstSession').addEventListener('click', () => openSessionEditor(null)); return;
+    }
+    v.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.2rem">${mySessCache.map((s) => {
+      const pct = Math.round(s.booked / s.maxSeats * 100);
+      return `<div class="panel" style="padding:1.5rem">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
+          <div><div class="lbl muted" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase">${esc(s.category)}</div>
+          <div style="font-family:var(--display);font-size:1.45rem;line-height:1.15;margin:.2rem 0">${esc(s.title)}</div></div>
+          <span class="badge b-${s.status === 'published' ? 'active' : 'draft'}">${s.status}</span>
+        </div>
+        <div class="muted" style="font-size:.88rem;margin-top:.2rem">${fmtD(s.date)} · ${fmtT(s.time)} · AED ${s.price}</div>
         <div style="margin-top:1rem;font-weight:700">${s.booked}/${s.maxSeats} booked</div>
-        <div style="height:6px;background:var(--bone-deep);border-radius:6px;margin-top:.4rem"><div style="height:100%;width:${Math.round(s.booked / s.maxSeats * 100)}%;background:var(--sage);border-radius:6px"></div></div>
-        <div class="btn ghost sm" style="margin-top:1rem;pointer-events:none">See who's coming →</div>
-      </div>`).join('')}</div>`;
-    $$('[data-roster]', v).forEach((c) => c.addEventListener('click', () => openRoster(mine.find((s) => s.id === c.dataset.roster))));
+        <div style="height:6px;background:var(--bone-deep);border-radius:6px;margin-top:.4rem"><div style="height:100%;width:${pct}%;background:var(--sage);border-radius:6px"></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.2rem">
+          <button class="btn gold sm" data-roster="${s.id}">Who's coming</button>
+          <button class="btn ghost sm" data-edit-my="${s.id}">Edit</button>
+          <button class="btn ghost sm" data-pub-my="${s.id}">${s.status === 'published' ? 'Unpublish' : 'Publish'}</button>
+          <button class="btn ghost sm" data-share="${s.slug}">Copy link</button>
+          <button class="btn danger sm" data-del-my="${s.id}">Delete</button>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+    $$('[data-roster]', v).forEach((c) => c.addEventListener('click', () => openRoster(mySessCache.find((s) => s.id === c.dataset.roster))));
+    $$('[data-edit-my]', v).forEach((b) => b.addEventListener('click', () => openSessionEditor(mySessCache.find((s) => s.id === b.dataset.editMy))));
+    $$('[data-pub-my]', v).forEach((b) => b.addEventListener('click', async () => { const s = mySessCache.find((x) => x.id === b.dataset.pubMy); await api('PUT', 'sessions/' + s.id, { status: s.status === 'published' ? 'draft' : 'published' }); toast(s.status === 'published' ? 'Unpublished' : 'Published & live'); renderMySessions(); }));
+    $$('[data-del-my]', v).forEach((b) => b.addEventListener('click', async () => { if (confirm('Delete this session? This cannot be undone.')) { await api('DELETE', 'sessions/' + b.dataset.delMy); toast('Session deleted'); renderMySessions(); } }));
+    $$('[data-share]', v).forEach((b) => b.addEventListener('click', () => {
+      const url = location.origin + '/session.html?slug=' + b.dataset.share;
+      navigator.clipboard?.writeText(url).then(() => toast('Public link copied — share it anywhere'), () => prompt('Copy your session link:', url));
+    }));
   }
   const statTile = (lbl, num) => `<div class="stat-card"><div class="lbl">${lbl}</div><div class="num">${num}</div></div>`;
   async function openRoster(s) {

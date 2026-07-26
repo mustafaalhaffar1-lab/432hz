@@ -261,6 +261,8 @@ async function api(req, res, url) {
   const me = isAuthed(req);
   const requireAuth = () => { if (!me) { sendJSON(res, 401, { error: 'unauthorized' }); return false; } return true; };
   const requireAdmin = () => { if (!me) { sendJSON(res, 401, { error: 'unauthorized' }); return false; } if (me.role !== 'admin') { sendJSON(res, 403, { error: 'Admins only' }); return false; } return true; };
+  const myInstructorName = () => (me && (me.instructorName || me.name) || '').toLowerCase().trim();
+  const ownsSession = (s) => !!me && (me.role === 'admin' || (me.role === 'instructor' && !!s && (s.instructor || '').toLowerCase().trim() === myInstructorName()));
 
   // ---- auth ----
   if (resource === 'login' && method === 'POST') {
@@ -387,9 +389,9 @@ async function api(req, res, url) {
     }
   }
 
-  // ---- upload (base64) ----
+  // ---- upload (base64) — any signed-in staff (for product & session photos) ----
   if (resource === 'upload' && method === 'POST') {
-    if (!requireAdmin()) return;
+    if (!requireAuth()) return;
     const { filename, dataUrl } = await readBody(req);
     const m = /^data:(image\/[a-z+]+);base64,(.+)$/i.exec(dataUrl || '');
     if (!m) return sendJSON(res, 400, { error: 'invalid image' });
@@ -458,38 +460,46 @@ async function api(req, res, url) {
       return s ? sendJSON(res, 200, withSeats(s, bookings)) : sendJSON(res, 404, { error: 'not found' });
     }
     if (method === 'POST' && id && action === 'duplicate') {
-      if (!requireAdmin()) return;
+      if (!requireAuth()) return;
       const src = all.find((x) => x.id === id); if (!src) return sendJSON(res, 404, { error: 'not found' });
+      if (!ownsSession(src)) return sendJSON(res, 403, { error: 'Not your session' });
       const copy = { ...src, id: 's_' + crypto.randomBytes(5).toString('hex'), title: src.title + ' (copy)', status: 'draft', featured: false, createdAt: Date.now() };
+      if (me.role === 'instructor') copy.instructor = me.instructorName || me.name;
       all.unshift(copy); writeJSON('sessions.json', all); return sendJSON(res, 201, copy);
     }
     if (method === 'POST') {
-      if (!requireAdmin()) return;
+      if (!requireAuth()) return; // any staff can create; instructors are pinned to themselves
       const b = await readBody(req);
+      const instructor = me.role === 'instructor' ? (me.instructorName || me.name) : (b.instructor || '');
       const s = {
         id: 's_' + crypto.randomBytes(5).toString('hex'),
         title: b.title || 'Untitled session', slug: (b.title || 'session').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
         category: b.category || 'Guided Meditation', price: +b.price || 0, maxSeats: +b.maxSeats || 10,
-        date: b.date || '', time: b.time || '', duration: b.duration || '', instructor: b.instructor || '',
+        date: b.date || '', time: b.time || '', duration: b.duration || '', instructor,
         location: b.location || '432Hz Studio, Dubai', difficulty: b.difficulty || '',
         description: b.description || '', about: b.about || '', whatToBring: b.whatToBring || '', whatToExpect: b.whatToExpect || '',
         benefits: Array.isArray(b.benefits) ? b.benefits : [], gallery: Array.isArray(b.gallery) ? b.gallery : [],
         journey: Array.isArray(b.journey) ? b.journey : [],
-        coverImage: b.coverImage || '', status: b.status || 'draft', featured: !!b.featured,
+        coverImage: b.coverImage || '', status: b.status || 'draft', featured: me.role === 'admin' ? !!b.featured : false,
         cancelPolicy: b.cancelPolicy || 'Free cancellation up to 24 hours before the session.', createdAt: Date.now(),
       };
       all.unshift(s); writeJSON('sessions.json', all); return sendJSON(res, 201, s);
     }
     if (method === 'PUT' && id) {
-      if (!requireAdmin()) return;
+      if (!requireAuth()) return;
       const b = await readBody(req); const i = all.findIndex((x) => x.id === id);
       if (i < 0) return sendJSON(res, 404, { error: 'not found' });
-      ['title', 'category', 'price', 'maxSeats', 'date', 'time', 'duration', 'instructor', 'location', 'difficulty', 'description', 'about', 'whatToBring', 'whatToExpect', 'benefits', 'gallery', 'journey', 'coverImage', 'status', 'featured', 'cancelPolicy'].forEach((f) => { if (b[f] !== undefined) all[i][f] = f === 'price' || f === 'maxSeats' ? +b[f] : b[f]; });
+      if (!ownsSession(all[i])) return sendJSON(res, 403, { error: 'Not your session' });
+      const editable = ['title', 'category', 'price', 'maxSeats', 'date', 'time', 'duration', 'location', 'difficulty', 'description', 'about', 'whatToBring', 'whatToExpect', 'benefits', 'gallery', 'journey', 'coverImage', 'status', 'cancelPolicy'];
+      if (me.role === 'admin') editable.push('instructor', 'featured'); // only admins reassign or feature
+      editable.forEach((f) => { if (b[f] !== undefined) all[i][f] = f === 'price' || f === 'maxSeats' ? +b[f] : b[f]; });
       if (b.title) all[i].slug = b.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       writeJSON('sessions.json', all); return sendJSON(res, 200, all[i]);
     }
     if (method === 'DELETE' && id) {
-      if (!requireAdmin()) return;
+      if (!requireAuth()) return;
+      const s = all.find((x) => x.id === id);
+      if (!ownsSession(s)) return sendJSON(res, 403, { error: 'Not your session' });
       writeJSON('sessions.json', all.filter((x) => x.id !== id)); return sendJSON(res, 200, { ok: true });
     }
   }
