@@ -751,7 +751,14 @@ function serveStatic(req, res, url) {
   if (!filePath.startsWith(ROOT)) { res.writeHead(403); return res.end('Forbidden'); }
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end('<h1>404</h1>'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream' });
+    const ext = path.extname(filePath).toLowerCase();
+    // Images & fonts rarely change → cache hard. HTML/CSS/JS must always be fresh
+    // so code updates appear immediately after a deploy (no more stale cache).
+    const longCache = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.ico', '.woff2'].includes(ext);
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Cache-Control': longCache ? 'public, max-age=604800, immutable' : 'no-cache, must-revalidate',
+    });
     res.end(data);
   });
 }
